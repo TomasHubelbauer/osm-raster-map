@@ -1,0 +1,21 @@
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#mapCanvas {
+  height: 100%;
+  width: 100%;
+}
+
+.controls {
+  background: white;
+  margin: 1ex;  
+  position: absolute;
+  top: 0;
+}
