@@ -1,12 +1,9 @@
 window.addEventListener('load', async () => {
-  // This doesn't seem to be increasing the storage quota which only seems to be able to hold a few tiles
-  //console.log(await navigator.storage.persist());
-
   let gpsX = 0;
   let gpsY = 0;
 
   // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-  // TODO: Make it so these are center coordinates not top-left coordinates, then zoom will work as expected
+  // TODO: Make it so these are center coordinates not top-left coordinates, then zoom will work as expected - see `calculateMap`
   const { coords: { latitude, longitude } } = localStorage['coords'] ? JSON.parse(localStorage['coords']) : await getGps();
   localStorage['coords'] = JSON.stringify({ coords: { latitude, longitude } } /* The `Position` object serializes to an empty object */); let z = 12;
   let locX = (longitude + 180) / 360 * Math.pow(2, z);
@@ -194,6 +191,31 @@ function getGps() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })
   });
+}
+
+// TODO: Redo this so that it works with the center tile not the top-left tile which should help with zoom
+function calculateMap(latitude, longitude, width, height) {
+  // Get the top-left map tile longitude number consisting of the tile index at the integral part and the GPS point ratio within the tile width at the fractional part
+  const topLeftTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, z);
+
+  // Get the top-left map tile longitude index from the integral part of the top-left tile longitude number
+  const topLeftTileLongitudeIndex = Math.floor(topLeftTileLongitudeNumber);
+
+  // Get the ratio at which the GPS point longitude position is within the top-left map tile width (0 - 1)
+  const topLeftTileLongitudeGpsPositionRatio = topLeftTileLongitudeNumber % 1;
+
+  // Get the top-left map tile latitude number consisting of the tile index at the integral part and the GPS point ratio within the tile height at the fractional part
+  const topLeftTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z);
+
+  // Get the top-left map tile latitude index from the integral part of the top-left tile latitude number
+  const topLeftTileLatitudeIndex = Math.floor(topLeftTileLatitudeNumber);
+
+  // Get the ratio at which the GPS point latitude position is within the top-left map tile height (0 - 1)
+  const topLeftTileLatitudeGpsPositionRatio = topLeftTileLatitudeNumber % 1;
+
+  const canvasX = 0;
+
+  const canvasY = 0;
 }
 
 const tileCache = {};
