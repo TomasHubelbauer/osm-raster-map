@@ -7,10 +7,14 @@ window.addEventListener('load', async () => {
 
   // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
   // TODO: Make it so these are center coordinates not top-left coordinates, then zoom will work as expected
-  const { coords: { latitude, longitude } } = await getGps();
-  let z = 12;
-  let x = Math.floor((longitude + 180) / 360 * Math.pow(2, z));
-  let y = Math.floor((1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
+  const { coords: { latitude, longitude } } = localStorage['coords'] ? JSON.parse(localStorage['coords']) : await getGps();
+  localStorage['coords'] = JSON.stringify({ coords: { latitude, longitude } } /* The `Position` object serializes to an empty object */); let z = 12;
+  let locX = (longitude + 180) / 360 * Math.pow(2, z);
+  let x = Math.floor(locX);
+  locX = locX % 1; // Fraction within the tile
+  let locY = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z);
+  let y = Math.floor(locY);
+  locY = locY % 1; // Fraction within the tile
 
   document.getElementById('zoomInButton').addEventListener('click', () => {
     z++;
@@ -113,9 +117,13 @@ window.addEventListener('load', async () => {
         const gridX = startX + 256 * tileX;
         const gridY = startY + 256 * tileY;
 
-        // Draw a red rectangle while the tile is loading to visualize the loading process
-        context.fillStyle = 'red';
-        context.fillRect(gridX, gridY, 256, 256);
+        // Draw a checker board pattern while the tile is loading to visualize the loading process
+        for (let x = 0; x < 256 / 8; x++) {
+          for (let y = 0; y < 256 / 8; y++) {
+            context.fillStyle = x % 2 === 0 ^ y % 2 === 0 ? 'silver' : 'white';
+            context.fillRect(gridX + x * 8, gridY + y * 8, 8, 8);
+          }
+        }
 
         const coordX = x + diffX + tileX;
         const coordY = y + diffY + tileY;
@@ -130,18 +138,26 @@ window.addEventListener('load', async () => {
             }
 
             context.drawImage(tile, gridX, gridY);
+            context.fillStyle = 'black';
             context.fillText(`${coordX} ${coordY}`, gridX, gridY + 10);
 
             // Draw a red rectangle around the anchor tile
             if (coordX === x && coordY === y) {
-              context.strokeStyle = 'red';
-              context.fillRect(gridX + 2, gridY + 2, 252, 252);
+              const meX = gpsX + (locX) * 256;
+              const meY = gpsY + (locY) * 256;
+              context.beginPath();
+              context.fillText('YOU', meX, meY + 10);
+
+              //context.strokeStyle = 'red';
+              //context.rect(gridX + 2, gridY + 2, 250, 250);
+              //context.stroke();
             }
 
             // Draw a lime rectangle around the center tile (to be merged with the anchor tile in a future update)
             if (coordX === centerTileX && coordY === centerTileY) {
-              context.strokeStyle = 'lime';
-              context.rect(gridX, gridY, 256, 256);
+              //context.strokeStyle = 'lime';
+              //context.rect(gridX + 2, gridY + 2, 250, 250);
+              //context.stroke();
             }
 
             // Redraw all strokes after each tile so that tiles don't replace strokes
@@ -175,7 +191,9 @@ window.addEventListener('load', async () => {
 });
 
 function getGps() {
-  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true }));
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })
+  });
 }
 
 const tileCache = {};
