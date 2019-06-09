@@ -1,4 +1,7 @@
 window.addEventListener('load', async () => {
+  // This doesn't seem to be increasing the storage quota which only seems to be able to hold a few tiles
+  //console.log(await navigator.storage.persist());
+
   //const gps = await getGps();
   let gpsX = 0; // gps.coords.longitude;
   let gpsY = 0; // gps.coords.latitude;
@@ -118,43 +121,49 @@ window.addEventListener('load', async () => {
         const coordY = y + diffY + tileY;
 
         // Fire and forget the tile fetch logic and draw it when it returns assuming the map hasn't moved since
-        getTile(coordX, coordY, z).then(tile => {
-          // Bail in case the map has moved since
-          // TODO: If the map has translated but not scaled, we could calculate the new difference and just render moved, maybe check if not offscreen first?
-          if (gpsX !== forX || gpsY !== forY) {
-            return;
-          }
-
-          context.drawImage(tile, gridX, gridY);
-          context.fillText(`${coordX} ${coordY}`, gridX, gridY + 10);
-
-          // Draw a red rectangle around the anchor tile
-          if (coordX === x && coordY === y) {
-            context.strokeStyle = 'red';
-            context.rect(gridX + 2, gridY + 2, 252, 252);
-          }
-
-          // Draw a lime rectangle around the center tile (to be merged with the anchor tile in a future update)
-          if (coordX === centerTileX && coordY === centerTileY) {
-            context.strokeStyle = 'lime';
-            context.rect(gridX, gridY, 256, 256);
-          }
-
-          // Redraw all strokes after each tile so that tiles don't replace strokes
-          // This will have the effect of ruining the antialiasing (drawing over and over if tile hasn't changed), maybe I need two buffers - one for tiles and one for strokes?
-          context.lineWidth = 1;
-          context.strokeStyle = 'lime';
-          for (const stroke of strokes) {
-            context.beginPath();
-            const offsetX = gpsX - stroke[0];
-            const offsetY = gpsY - stroke[1];
-            for (let index = 2; index < stroke.length;) {
-              context.lineTo(stroke[index++] + offsetX, stroke[index++] + offsetY);
+        getTile(coordX, coordY, z)
+          .then(tile => {
+            // Bail in case the map has moved since
+            // TODO: If the map has translated but not scaled, we could calculate the new difference and just render moved, maybe check if not offscreen first?
+            if (gpsX !== forX || gpsY !== forY) {
+              return;
             }
 
-            context.stroke();
-          }
-        });
+            context.drawImage(tile, gridX, gridY);
+            context.fillText(`${coordX} ${coordY}`, gridX, gridY + 10);
+
+            // Draw a red rectangle around the anchor tile
+            if (coordX === x && coordY === y) {
+              context.strokeStyle = 'red';
+              context.rect(gridX + 2, gridY + 2, 252, 252);
+            }
+
+            // Draw a lime rectangle around the center tile (to be merged with the anchor tile in a future update)
+            if (coordX === centerTileX && coordY === centerTileY) {
+              context.strokeStyle = 'lime';
+              context.rect(gridX, gridY, 256, 256);
+            }
+
+            // Redraw all strokes after each tile so that tiles don't replace strokes
+            // This will have the effect of ruining the antialiasing (drawing over and over if tile hasn't changed), maybe I need two buffers - one for tiles and one for strokes?
+            context.lineWidth = 1;
+            context.strokeStyle = 'lime';
+            for (const stroke of strokes) {
+              context.beginPath();
+              const offsetX = gpsX - stroke[0];
+              const offsetY = gpsY - stroke[1];
+              for (let index = 2; index < stroke.length;) {
+                context.lineTo(stroke[index++] + offsetX, stroke[index++] + offsetY);
+              }
+
+              context.stroke();
+            }
+          })
+          .catch(error => {
+            // TODO: Draw an error tile
+            console.log(error);
+          })
+          ;
       }
     }
 
@@ -170,15 +179,49 @@ function getGps() {
 }
 
 const tileCache = {};
+const cacheCanvas = document.createElement('canvas');
 function getTile(x, y, z) {
   const key = `${z}-${x}-${y}`;
   const promise = new Promise((resolve, reject) => {
+    const tileImage = new Image();
+
     // See if we already have this tile in memory
-    const match = tileCache[key];
+    const match = tileCache[key] || localStorage[key];
     if (match) {
       // Wait if we do not have the tile yet but we are already downloading it
       if (match instanceof Promise) {
         match.then(resolve, reject);
+        return;
+      }
+
+      // Convert Base64 data URI in local storage to image for returing
+      if (typeof match === 'string') {
+        let decodeResolve;
+        let decodeReject;
+
+        // Present a promise for the decoding to avoid duplicate work while decoding
+        tileCache[key] = new Promise((resolve, reject) => {
+          decodeResolve = resolve;
+          decodeReject = reject;
+        });
+
+        // Load the image from the data URI in the local storage
+        tileImage.src = match;
+
+        tileImage.addEventListener('load', () => {
+          resolve(tileImage);
+          decodeResolve(tileImage);
+
+          // Cache in memory
+          tileCache[key] = tileImage;
+          console.log('Restored', key);
+        });
+
+        tileImage.addEventListener('error', event => {
+          reject(event);
+          decodeReject(event);
+        });
+
         return;
       }
 
@@ -187,14 +230,33 @@ function getTile(x, y, z) {
       return;
     }
 
-    const tileImage = new Image();
-
     // Obtain the tile image asynchronously for caching
     tileImage.src = `https://mapserver.mapy.cz/base-m/${z}-${x}-${y}`;
+
+    // Ensure CORS is disabled so that `context.drawImage` is not insecure
+    tileImage.crossOrigin = 'anonymous';
+
     tileImage.addEventListener('load', () => {
-      console.log('Cached', key);
-      tileCache[key] = tileImage;
       resolve(tileImage);
+
+      // Cache in memory
+      tileCache[key] = tileImage;
+
+      // Cache in storage
+      // TODO: Use OffscreenCanvas when supported
+      cacheCanvas.width = tileImage.naturalWidth;
+      cacheCanvas.height = tileImage.naturalHeight;
+
+      const context = cacheCanvas.getContext('2d');
+      context.drawImage(tileImage, 0, 0);
+
+      try {
+        localStorage.setItem(key, cacheCanvas.toDataURL());
+        console.log('Persisted', key);
+      } catch (error) {
+        console.log('Memorized', key);
+        // Ignore quota error, the user either gave or didn't give persistent storage permission
+      }
     });
 
     tileImage.addEventListener('error', reject);
