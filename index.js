@@ -2,17 +2,15 @@ window.addEventListener('load', async () => {
   // This doesn't seem to be increasing the storage quota which only seems to be able to hold a few tiles
   //console.log(await navigator.storage.persist());
 
-  //const gps = await getGps();
-  let gpsX = 0; // gps.coords.longitude;
-  let gpsY = 0; // gps.coords.latitude;
+  let gpsX = 0;
+  let gpsY = 0;
 
-  // TODO: Find out how to resolve the tile coordinates from GPS coordinates
+  // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
   // TODO: Make it so these are center coordinates not top-left coordinates, then zoom will work as expected
-  let x = 2211;
-  let y = 1386;
+  const { coords: { latitude, longitude } } = await getGps();
   let z = 12;
-
-  const mapCanvas = document.getElementById('mapCanvas');
+  let x = Math.floor((longitude + 180) / 360 * Math.pow(2, z));
+  let y = Math.floor((1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
 
   document.getElementById('zoomInButton').addEventListener('click', () => {
     z++;
@@ -32,6 +30,8 @@ window.addEventListener('load', async () => {
   document.getElementById('modeButton').addEventListener('click', () => {
     mode = mode === 'browse' ? 'draw' : 'browse';
   });
+
+  const mapCanvas = document.getElementById('mapCanvas');
 
   let anchorTime;
   let strokes = [];
@@ -135,7 +135,7 @@ window.addEventListener('load', async () => {
             // Draw a red rectangle around the anchor tile
             if (coordX === x && coordY === y) {
               context.strokeStyle = 'red';
-              context.rect(gridX + 2, gridY + 2, 252, 252);
+              context.fillRect(gridX + 2, gridY + 2, 252, 252);
             }
 
             // Draw a lime rectangle around the center tile (to be merged with the anchor tile in a future update)

@@ -9,6 +9,9 @@ problem with vector tiles from a different source.
 I generally believe raster tiles are inferior to vector tiles, but boy, are
 they easier to work with!
 
+- Reuse the OSM GPS to tile indices algorithm without rounding to be able to show
+  a circle at the found position within the tile (the fractional parts) with a
+  radius based on the accuracy level
 - Improve the cache so it evicts the least hit tile in favor or a new tile to persist
 - Improve zooming by zooming around the center tile not the anchor tile
   Do this by changing `gpsX` and `gpxY` to be just offsets within the tile not the world.
