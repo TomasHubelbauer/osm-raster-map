@@ -1,57 +1,54 @@
 window.addEventListener('load', async () => {
-  let gpsX = 0;
-  let gpsY = 0;
+  const tileWidth = 256;
+  const tileHeight = 256;
 
-  // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-  // TODO: Make it so these are center coordinates not top-left coordinates, then zoom will work as expected - see `calculateMap`
-  const { coords: { latitude, longitude } } = localStorage['coords'] ? JSON.parse(localStorage['coords']) : await getGps();
-  localStorage['coords'] = JSON.stringify({ coords: { latitude, longitude } } /* The `Position` object serializes to an empty object */); let z = 12;
-  let locX = (longitude + 180) / 360 * Math.pow(2, z);
-  let x = Math.floor(locX);
-  locX = locX % 1; // Fraction within the tile
-  let locY = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z);
-  let y = Math.floor(locY);
-  locY = locY % 1; // Fraction within the tile
+  let { latitude, longitude, zoom } = localStorage['map']
+    ? JSON.parse(localStorage['map'])
+    : await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(position => {
+        const longitude = position.coords.longitude;
+        const latitude = position.coords.latitude;
+        const map = { longitude, latitude, zoom: 12 };
+        localStorage['map'] = JSON.stringify(map);
+        resolve(map);
+      }, reject, { enableHighAccuracy: true })
+    });
 
-  document.getElementById('zoomInButton').addEventListener('click', () => {
-    z++;
-    x = Math.round(x * 2);
-    y = Math.round(y * 2);
+  const zoomInButton = document.getElementById('zoomInButton');
+  zoomInButton.addEventListener('click', () => {
+    if (zoom >= 18) {
+      alert('This is the largest possible zoom');
+    }
+
+    zoom++;
     render();
   });
 
-  document.getElementById('zoomOutButton').addEventListener('click', () => {
-    z--;
-    x = Math.round(x / 2);
-    y = Math.round(y / 2);
+  const zoomOutButton = document.getElementById('zoomOutButton');
+  zoomOutButton.addEventListener('click', () => {
+    if (zoom <= 0) {
+      alert('This is the smallest possible zoom');
+    }
+
+    zoom--;
     render();
   });
 
   let mode = 'browse';
-  document.getElementById('modeButton').addEventListener('click', () => {
+  const modeButton = document.getElementById('modeButton');
+  modeButton.addEventListener('click', () => {
     mode = mode === 'browse' ? 'draw' : 'browse';
+    render();
   });
 
   const mapCanvas = document.getElementById('mapCanvas');
 
-  let anchorTime;
   let strokes = [];
   mapCanvas.addEventListener('pointerdown', event => {
     if (mode === 'draw') {
-      strokes.push([gpsX, gpsY, event.offsetX, event.offsetY]);
+      strokes.push([longitude, latitude, event.offsetX, event.offsetY]);
       return;
     }
-
-    // TODO: Recognize a double left/right click and zoom in/out accordingly
-    if (anchorTime && event.timeStamp - anchorTime < 250) {
-      z++;
-      x = Math.round(x * 2);
-      y = Math.round(y * 2);
-      render();
-      return;
-    }
-
-    anchorTime = event.timeStamp;
   });
 
   mapCanvas.addEventListener('pointermove', event => {
@@ -62,9 +59,9 @@ window.addEventListener('load', async () => {
         return;
       }
 
-      gpsX += event.movementX;
-      gpsY += event.movementY;
-
+      // TODO: Calculate respective change in the GPS coords and use that
+      longitude += -event.movementX / 750;
+      latitude += event.movementY / 2000;
       render();
     }
   });
@@ -72,151 +69,126 @@ window.addEventListener('load', async () => {
   window.addEventListener('resize', render);
 
   let context;
-  let contextW;
-  let contextH;
+  let canvasWidth;
+  let canvasHeight;
+
+  // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
   function render() {
-
-    // Cache the context for these dimensions
-    if (contextW !== mapCanvas.clientWidth || contextH !== mapCanvas.clientHeight) {
+    // Bust the context cache in case the dimensions have changed (window resize)
+    if (canvasWidth !== mapCanvas.clientWidth || canvasHeight !== mapCanvas.clientHeight) {
+      // Cache the context for the canvas dimensions for reuse across renders
       context = mapCanvas.getContext('2d');
-      context.font = 'bold 9pt sans-serif';
 
+      // Make the canvas grid match the canvas dimensions to avoid stretching
       mapCanvas.width = mapCanvas.clientWidth;
       mapCanvas.height = mapCanvas.clientHeight;
 
-      contextW = mapCanvas.width;
-      contextH = mapCanvas.height;
+      // Remember the canvas dimensions the context belongs to
+      canvasWidth = mapCanvas.width;
+      canvasHeight = mapCanvas.height;
     }
 
-    // Remember what coordinates this render is for so that we can bail if the map moves meanwhile
-    const forX = gpsX;
-    const forY = gpsY;
+    // Find the center point of the canvas that corresponds to the longitude and latitude of the position
+    const centerPointCanvasX = canvasWidth / 2;
+    const centerPointCanvasY = canvasHeight / 2;
 
-    // Calculate the coordinates off-screen beyond the top-left corner so that the first row and column are covered in partial tiles
-    const startX = gpsX === 0 ? 0 : (gpsX > 0 ? -(256 - (gpsX % 256)) : (gpsX % 256));
-    const startY = gpsY === 0 ? 0 : (gpsY > 0 ? -(256 - (gpsY % 256)) : (gpsY % 256));
+    // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
+    const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
+    const centerTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
 
-    // Find out how many visible tiles there are before the pivot tile (with negative signs)
-    const diffX = -Math.ceil(gpsX / 256);
-    const diffY = -Math.ceil(gpsY / 256);
+    // Find the point at which the GPS position point is within the tile it is contained within
+    const centerPointTileX = (centerTileLongitudeNumber % 1) * tileWidth;
+    const centerPointTileY = (centerTileLatitudeNumber % 1) * tileHeight;
 
-    // Calculate the amount of tiles that fit on the screen adding an extra tile for the last row and column if the pivot one is beyond the top-left corner
-    const tilesX = Math.ceil(mapCanvas.width / 256) + 1 /* Extra tile if case the leftmost one is shifted past the boundary */;
-    const tilesY = Math.ceil(mapCanvas.height / 256) + 1 /* Extra tile if case the topmost one is shifted past the boundary */;
+    // Find the canvas position at which the center tile is placed (depends on where the position point is within the center tile, see above)
+    const centerTileCanvasX = centerPointCanvasX - centerPointTileX;
+    const centerTileCanvasY = centerPointCanvasY - centerPointTileY;
 
-    // Keep track of what tile is at the center of the map for future code which will track the map view by the center tile not the top-left one
-    const centerTileX = x + diffX + Math.floor(tilesX / 2);
-    const centerTileY = y + diffY + Math.floor(tilesY / 2);
+    // Find out how many visible columns of tiles there are before the center tile and from what canvas point (zero or negative) they go right
+    const leftColumnsBeforeCenterCount = Math.ceil(centerTileCanvasX / tileWidth);
+    const leftColumnTilesCanvasX = centerTileCanvasX - leftColumnsBeforeCenterCount * tileWidth;
 
-    for (let tileX = 0; tileX < tilesX; tileX++) {
-      for (let tileY = 0; tileY < tilesY; tileY++) {
-        // Calculate the final coordinates of the tile
-        const gridX = startX + 256 * tileX;
-        const gridY = startY + 256 * tileY;
+    // Find out how many visible rows of tiles there are above the center tile and from what canvas point (zero or negative) they go down
+    const topRowsBeforeCenterCount = Math.ceil(centerTileCanvasY / tileHeight);
+    const topRowTilesCanvasY = centerTileCanvasY - topRowsBeforeCenterCount * tileHeight;
 
-        // Draw a checker board pattern while the tile is loading to visualize the loading process
-        for (let x = 0; x < 256 / 8; x++) {
-          for (let y = 0; y < 256 / 8; y++) {
+    // Find the map tile longitude index of the center tile and from it the left column tiles
+    const centerTileLongitudeIndex = Math.floor(centerTileLongitudeNumber);
+    const leftColumnTilesLongitudeIndex = centerTileLongitudeIndex - leftColumnsBeforeCenterCount;
+
+    // Find the map tile latitude index of the center tile and from it the top row tiles
+    const centerTileLatitudeIndex = Math.floor(centerTileLatitudeNumber);
+    const topRowTilesLatitudeIndex = centerTileLatitudeIndex - topRowsBeforeCenterCount;
+
+    // Find out how many tiles fit on the screen horizontall and vertically (varies depending on how first column and row are offset to the negative)
+    const horizontalTileCount = Math.ceil((canvasWidth + -leftColumnTilesCanvasX) / tileWidth);
+    const verticalTileCount = Math.ceil((canvasHeight + -topRowTilesCanvasY) / tileHeight);
+
+    // Remember the values for which this render happens so that what the tiles are done being resolved asynchronously they can get discarded if the map moved meanwhile
+    const renderLongitude = longitude;
+    const renderLatitude = latitude;
+    const renderZoom = zoom;
+
+    for (let horizontalTileIndex = 0; horizontalTileIndex < horizontalTileCount; horizontalTileIndex++) {
+      const tileCanvasX = leftColumnTilesCanvasX + horizontalTileIndex * tileWidth;
+      const tileLongitudeIndex = leftColumnTilesLongitudeIndex + horizontalTileIndex;
+
+      for (let verticalTileIndex = 0; verticalTileIndex < verticalTileCount; verticalTileIndex++) {
+        const tileCanvasY = topRowTilesCanvasY + verticalTileIndex * tileHeight;
+        const tileLatitudeIndex = topRowTilesLatitudeIndex + verticalTileIndex;
+
+        // Draw a checker board pattern as a substrate for the tile while it is loading
+        for (let x = 0; x < tileWidth / 8; x++) {
+          for (let y = 0; y < tileHeight / 8; y++) {
             context.fillStyle = x % 2 === 0 ^ y % 2 === 0 ? 'silver' : 'white';
-            context.fillRect(gridX + x * 8, gridY + y * 8, 8, 8);
+            context.fillRect(tileCanvasX + x * 8, tileCanvasY + y * 8, 8, 8);
           }
         }
 
-        const coordX = x + diffX + tileX;
-        const coordY = y + diffY + tileY;
-
-        // Fire and forget the tile fetch logic and draw it when it returns assuming the map hasn't moved since
-        getTile(coordX, coordY, z)
+        // Fire and forget without `await` so that tiles render in paralell, not sequentially
+        getTile(tileLongitudeIndex, tileLatitudeIndex, zoom)
           .then(tile => {
-            // Bail in case the map has moved since
-            // TODO: If the map has translated but not scaled, we could calculate the new difference and just render moved, maybe check if not offscreen first?
-            if (gpsX !== forX || gpsY !== forY) {
+            // Bail if the map has moved before this tile has been resolved
+            if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
               return;
             }
 
-            context.drawImage(tile, gridX, gridY);
-            context.fillStyle = 'black';
-            context.fillText(`${coordX} ${coordY}`, gridX, gridY + 10);
+            // Draw the tile image
+            context.drawImage(tile, tileCanvasX, tileCanvasY);
 
-            // Draw a red rectangle around the anchor tile
-            if (coordX === x && coordY === y) {
-              const meX = gpsX + (locX) * 256;
-              const meY = gpsY + (locY) * 256;
-              context.beginPath();
-              context.fillText('YOU', meX, meY + 10);
+            // TODO: Find the lines and line portions within this tile and redraw them
 
-              //context.strokeStyle = 'red';
-              //context.rect(gridX + 2, gridY + 2, 250, 250);
-              //context.stroke();
-            }
-
-            // Draw a lime rectangle around the center tile (to be merged with the anchor tile in a future update)
-            if (coordX === centerTileX && coordY === centerTileY) {
-              //context.strokeStyle = 'lime';
-              //context.rect(gridX + 2, gridY + 2, 250, 250);
-              //context.stroke();
-            }
-
-            // Redraw all strokes after each tile so that tiles don't replace strokes
-            // This will have the effect of ruining the antialiasing (drawing over and over if tile hasn't changed), maybe I need two buffers - one for tiles and one for strokes?
-            context.lineWidth = 1;
-            context.strokeStyle = 'lime';
-            for (const stroke of strokes) {
-              context.beginPath();
-              const offsetX = gpsX - stroke[0];
-              const offsetY = gpsY - stroke[1];
-              for (let index = 2; index < stroke.length;) {
-                context.lineTo(stroke[index++] + offsetX, stroke[index++] + offsetY);
-              }
-
-              context.stroke();
+            // Draw the GPS location point if this is the center tile
+            if (tileLongitudeIndex === centerTileLongitudeIndex && tileLatitudeIndex === centerTileLatitudeIndex) {
+              context.fillStyle = 'blue';
+              context.arc(tileCanvasX + centerPointTileX, tileCanvasY + centerPointTileY, 10, 0, 2 * Math.PI);
+              context.fill();
             }
           })
           .catch(error => {
-            // TODO: Draw an error tile
-            console.log(error);
+            // Bail if the map has moved before this tile has been rejected
+            if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
+              return;
+            }
+
+            // Render the error message crudely and indicate the error with a red substrate for the tile
+            context.fillStyle = 'red';
+            context.fillRect(tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+            context.fillText(error.toString(), tileCanvasX, tileCanvasY, tileWidth);
           })
           ;
       }
     }
 
-    document.getElementById('tileCooordSpan').textContent = `${x} ${y} ${z} | ${x + diffX}-${x + diffX + tilesX} ${y + diffY}-${y + diffY + tilesY} | ${centerTileX} ${centerTileY}`;
-    document.getElementById('modeButton').textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
+    zoomInButton.disabled = zoom >= 18;
+    zoomOutButton.disabled = zoom <= 0;
+    document.getElementById('tileCooordSpan').textContent = `${latitude} ${longitude} ${zoom} | ${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
+    modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
   }
 
+  // Render the initial map view
   render();
 });
-
-function getGps() {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })
-  });
-}
-
-// TODO: Redo this so that it works with the center tile not the top-left tile which should help with zoom
-function calculateMap(latitude, longitude, width, height) {
-  // Get the top-left map tile longitude number consisting of the tile index at the integral part and the GPS point ratio within the tile width at the fractional part
-  const topLeftTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, z);
-
-  // Get the top-left map tile longitude index from the integral part of the top-left tile longitude number
-  const topLeftTileLongitudeIndex = Math.floor(topLeftTileLongitudeNumber);
-
-  // Get the ratio at which the GPS point longitude position is within the top-left map tile width (0 - 1)
-  const topLeftTileLongitudeGpsPositionRatio = topLeftTileLongitudeNumber % 1;
-
-  // Get the top-left map tile latitude number consisting of the tile index at the integral part and the GPS point ratio within the tile height at the fractional part
-  const topLeftTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z);
-
-  // Get the top-left map tile latitude index from the integral part of the top-left tile latitude number
-  const topLeftTileLatitudeIndex = Math.floor(topLeftTileLatitudeNumber);
-
-  // Get the ratio at which the GPS point latitude position is within the top-left map tile height (0 - 1)
-  const topLeftTileLatitudeGpsPositionRatio = topLeftTileLatitudeNumber % 1;
-
-  const canvasX = 0;
-
-  const canvasY = 0;
-}
 
 const tileCache = {};
 const cacheCanvas = document.createElement('canvas');
@@ -254,7 +226,7 @@ function getTile(x, y, z) {
 
           // Cache in memory
           tileCache[key] = tileImage;
-          console.log('Restored', key);
+          //console.log('Restored', key);
         });
 
         tileImage.addEventListener('error', event => {
@@ -292,9 +264,9 @@ function getTile(x, y, z) {
 
       try {
         localStorage.setItem(key, cacheCanvas.toDataURL());
-        console.log('Persisted', key);
+        //console.log('Persisted', key);
       } catch (error) {
-        console.log('Memorized', key);
+        //console.log('Memorized', key);
         // Ignore quota error, the user either gave or didn't give persistent storage permission
       }
     });
