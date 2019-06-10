@@ -60,6 +60,16 @@ window.addEventListener('load', async () => {
       }
 
       // TODO: Calculate respective change in the GPS coords and use that
+      // - Obtain the change in pixels (movementX, movementY)
+      // - Find the new tile indices we are at (if changed)
+      // - Find out the ratios were at within the new tile
+      const newTileLongitudeNumber = 0;
+      const newLongitude = newTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+
+      const newTileLatitudeNumber = 0;
+      const n = Math.PI - 2 * Math.PI * newTileLatitudeNumber / Math.pow(2, zoom);
+      const newLatitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+
       longitude += -event.movementX / 750;
       latitude += event.movementY / 2000;
       render();
