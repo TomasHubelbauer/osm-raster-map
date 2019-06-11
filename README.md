@@ -1,32 +1,24 @@
 # Seznam Maps
 
-This project demonstrates the use of raster tiles from a publically reachable,
-unauthenticated Mapy.cz tile server.
+This project demonstrates the use of raster tiles from a publicly reachable, unauthenticated Mapy.cz tile server.
 
-I've built it for fun and as a detour from trying to figure out a frustrating
-problem with vector tiles from a different source.
+I've built it for fun and as a detour from trying to figure out a frustrating problem with vector tiles from a different source.
 
-I generally believe raster tiles are inferior to vector tiles, but boy, are
-they easier to work with!
+I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Display a circle at the current location (initially the map center but it stays put with map panning and zooming) with accuracy radius
 - Add support for placing points by GPS coordinates (pixels to GPS calculation)
 - Persist map configuration (longitude, latitude, zoom) after each change to restore where left off
+  (Possibly combine this with refactoring the map code to a class `Map` with events like onTileLoad, onTileRender etc.)
 - Implement double left/right click to zoom in/out
-- Use `OffscreenCanvas` in the tile cache when supported
-- Add support for finger stretching on the phone
-- Reuse the OSM GPS to tile indices algorithm without rounding to be able to show
-  a circle at the found position within the tile (the fractional parts) with a
-  radius based on the accuracy level
-- Improve the cache so it evicts the least hit tile in favor or a new tile to persist
-- Improve zooming by zooming around the center tile not the anchor tile
-  Do this by changing `gpsX` and `gpxY` to be just offsets within the tile not the world.
-  So they would have a range of 0 to 256. The `x` and `y` tile coordinates are the center of the map tile one's.
-  Each time the map moves, the new center of the map tile gets promoted and these adjusted to match.
-  The calculations that derive the top-left tile need to be adjusted accordingly as well.
-  Some of the calculations will be simplified with `gpsX` and `gpxY` having range 0-256
-  (tho we still need the modulo so probably not after all I guess).
-  This will also preserve the view as the window gets resized (center stays center).
-- Try to improve the loading algorithm so that it loads from the center out
-  (Like Cinema4D when rendering)
-- Create another demo which uses positioned `img` tags instead of `canvas`
-  (Use `canvas` only for drawing)
+- Implement pinch to zoom
+- Improve the local storage cache so it evicts the least hit tile in favor or a new tile to persist
+- Use a service worker for caching the commonly hit tiles by using a logic which eventually evicts tiles with low hits
+- Consider using the OSM tile server or adding an option to switch to it or hosting my own rendered tiles hosted somewhere free
+- Try to improve the loading algorithm so that it loads from the center out like Cinema4D bucket rendering (this may not be worth it)
+- Refactor the map logic to a `Map` class with events for tile load (checker board) and tile render and provide multiple renderers:
+  the current canvas based one (tiles and POIs rendered on canvas)
+  and an image based one (tiles and POIs CSS placed)
+  (Consider making it so that the renderer may opt into loading the tiles itself so the `img` based on could use checker board background
+  image and let the `img` elements load the tiles)
+- Use `OffscreenCanvas` in the tile cache if supported (right now only Chrome)
