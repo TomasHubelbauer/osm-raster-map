@@ -9,7 +9,6 @@ problem with vector tiles from a different source.
 I generally believe raster tiles are inferior to vector tiles, but boy, are
 they easier to work with!
 
-- Finalize the mouse move handler pixel diff to GPS diff calculation
 - Persist map configuration (longitude, latitude, zoom) after each change to restore where left off
 - Implement double left/right click to zoom in/out
 - Use `OffscreenCanvas` in the tile cache when supported
