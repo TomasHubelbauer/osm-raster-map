@@ -25,3 +25,5 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
 - Benchmark the performance of the `canvas` and `img` based solutions somehow
   (DevTools FPS profile with programmatic pan/zoom sequence with clear cache?)
 - Use `OffscreenCanvas` in the tile cache if supported (right now only Chrome)
+- Consider implementing a rate-limiter algorithm in the tile cache so that the GitHub Pages version cannot be abused to slam the server
+  (Although this would be impossible with the `img` based renderer which loads tiles itself - and a malicious person can still abuse)
