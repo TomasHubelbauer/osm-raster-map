@@ -187,7 +187,15 @@ window.addEventListener('load', async () => {
 
     zoomInButton.disabled = zoom >= 18;
     zoomOutButton.disabled = zoom <= 0;
-    document.getElementById('tileCooordSpan').textContent = `${latitude} ${longitude} ${zoom} | ${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
+    const a = document.getElementById('tileCooordSpan');
+    tileCooordSpan.textContent = '';
+    tileCooordSpan.textContent = longitude.toFixed(4);
+    tileCooordSpan.textContent += ' ';
+    tileCooordSpan.textContent += latitude.toFixed(4);
+    tileCooordSpan.textContent += ' | ';
+    tileCooordSpan.textContent += zoom;
+    tileCooordSpan.textContent += ' | ';
+    tileCooordSpan.textContent += `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
     modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
   }
 
