@@ -59,19 +59,21 @@ window.addEventListener('load', async () => {
         return;
       }
 
-      // TODO: Calculate respective change in the GPS coords and use that
-      // - Obtain the change in pixels (movementX, movementY)
-      // - Find the new tile indices we are at (if changed)
-      // - Find out the ratios were at within the new tile
-      const newTileLongitudeNumber = 0;
-      const newLongitude = newTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+      // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
+      const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
+      const centerTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
 
-      const newTileLatitudeNumber = 0;
-      const n = Math.PI - 2 * Math.PI * newTileLatitudeNumber / Math.pow(2, zoom);
-      const newLatitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+      // Transfer the change in canvas pixels to a change in tile numbers (multiples of tile size)
+      let newCenterTileLongitudeNumber = centerTileLongitudeNumber + -event.movementX / tileWidth;
+      let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -event.movementY / tileHeight;
 
-      longitude += -event.movementX / 750;
-      latitude += event.movementY / 2000;
+      // Calculate the new longitude using the reserve formula plugging in the adjusted tile longitude number
+      longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+
+      // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
+      const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
+      latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+
       render();
     }
   });
@@ -167,13 +169,6 @@ window.addEventListener('load', async () => {
             context.drawImage(tile, tileCanvasX, tileCanvasY);
 
             // TODO: Find the lines and line portions within this tile and redraw them
-
-            // Draw the GPS location point if this is the center tile
-            if (tileLongitudeIndex === centerTileLongitudeIndex && tileLatitudeIndex === centerTileLatitudeIndex) {
-              context.fillStyle = 'blue';
-              context.arc(tileCanvasX + centerPointTileX, tileCanvasY + centerPointTileY, 10, 0, 2 * Math.PI);
-              context.fill();
-            }
           })
           .catch(error => {
             // Bail if the map has moved before this tile has been rejected
@@ -199,6 +194,13 @@ window.addEventListener('load', async () => {
   // Render the initial map view
   render();
 });
+
+// TODO: Combine the `render` and `mousemove` handler code into one and memoize the intermediate results in class fields
+class Map {
+  render() {
+
+  }
+}
 
 const tileCache = {};
 const cacheCanvas = document.createElement('canvas');
