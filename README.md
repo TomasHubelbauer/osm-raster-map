@@ -6,6 +6,8 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+
+- Consider adding support for https://www.mapzen.com/projects/vector-tiles/ which is vector but has slippy tiles
 - Link server and tile size together so the HD one (512) and the others (256) work correctly
 - Hook up `+` and `-` keys for zoom in/out at the current map center
 - Persist pins & strokes in the local storage
