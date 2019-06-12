@@ -407,7 +407,8 @@ window.addEventListener('load', async () => {
         context.drawImage(tileImage, 0, 0);
 
         try {
-          localStorage.setItem(key, cacheCanvas.toDataURL());
+          // Uncomment the following to enable local storage cache to avoid abusing the map tile servers
+          //localStorage.setItem(key, cacheCanvas.toDataURL());
           //console.log('Persisted', key);
         } catch (error) {
           //console.log('Memorized', key);
