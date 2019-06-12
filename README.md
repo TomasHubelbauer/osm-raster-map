@@ -18,7 +18,6 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
 - Implement pinch to zoom
 - Improve the local storage cache so it evicts the least hit tile in favor or a new tile to persist
 - Use a service worker for caching the commonly hit tiles by using a logic which eventually evicts tiles with low hits
-- Consider using the OSM tile server or adding an option to switch to it or hosting my own rendered tiles hosted somewhere free
 - Try to improve the loading algorithm so that it loads from the center out like Cinema4D bucket rendering (this may not be worth it)
 - Refactor the map logic to a `Map` class with events for tile load (checker board) and tile render and provide multiple renderers:
   the current canvas based one (tiles and POIs rendered on canvas)

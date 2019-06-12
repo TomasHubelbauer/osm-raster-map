@@ -1,6 +1,8 @@
 window.addEventListener('load', async () => {
   const tileWidth = 256;
   const tileHeight = 256;
+  const tileCache = {};
+  const cacheCanvas = document.createElement('canvas');
 
   let { latitude, longitude, zoom } = localStorage['map']
     ? JSON.parse(localStorage['map'])
@@ -188,6 +190,13 @@ window.addEventListener('load', async () => {
     event.preventDefault();
   });
 
+  const serverSelect = document.getElementById('serverSelect');
+  let server = serverSelect.value;
+  serverSelect.addEventListener('change', () => {
+    server = serverSelect.value;
+    render();
+  });
+
   window.addEventListener('resize', render);
 
   let context;
@@ -321,6 +330,98 @@ window.addEventListener('load', async () => {
 
   // Render the initial map view
   render();
+
+  function getTile(x, y, z) {
+    const key = `${server}-${z}-${x}-${y}`;
+    const promise = new Promise((resolve, reject) => {
+      const tileImage = new Image();
+
+      // See if we already have this tile in memory
+      const match = tileCache[key] || localStorage[key];
+      if (match) {
+        // Wait if we do not have the tile yet but we are already downloading it
+        if (match instanceof Promise) {
+          match.then(resolve, reject);
+          return;
+        }
+
+        // Convert Base64 data URI in local storage to image for returing
+        if (typeof match === 'string') {
+          let decodeResolve;
+          let decodeReject;
+
+          // Present a promise for the decoding to avoid duplicate work while decoding
+          tileCache[key] = new Promise((resolve, reject) => {
+            decodeResolve = resolve;
+            decodeReject = reject;
+          });
+
+          // Load the image from the data URI in the local storage
+          tileImage.src = match;
+
+          tileImage.addEventListener('load', () => {
+            resolve(tileImage);
+            decodeResolve(tileImage);
+
+            // Cache in memory
+            tileCache[key] = tileImage;
+            //console.log('Restored', key);
+          });
+
+          tileImage.addEventListener('error', event => {
+            reject(event);
+            decodeReject(event);
+          });
+
+          return;
+        }
+
+        // Resolve with the cached tile image
+        resolve(match);
+        return;
+      }
+
+      // Obtain the tile image asynchronously for caching
+      switch (server) {
+        case 'mapy.cz': tileImage.src = `https://mapserver.mapy.cz/base-m/${z}-${x}-${y}`; break;
+        case 'osm': const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)]; tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`; break;
+        case 'wikimedia': tileImage.src = `https://maps.wikimedia.org/osm-intl/${z}/${x}/${y}.png`; break;
+        default: throw new Error('Unknown tile server');
+      }
+
+      // Ensure CORS is disabled so that `context.drawImage` is not insecure
+      tileImage.crossOrigin = 'anonymous';
+
+      tileImage.addEventListener('load', () => {
+        resolve(tileImage);
+
+        // Cache in memory
+        tileCache[key] = tileImage;
+
+        // Cache in storage
+        // TODO: Use OffscreenCanvas when supported
+        cacheCanvas.width = tileImage.naturalWidth;
+        cacheCanvas.height = tileImage.naturalHeight;
+
+        const context = cacheCanvas.getContext('2d');
+        context.drawImage(tileImage, 0, 0);
+
+        try {
+          localStorage.setItem(key, cacheCanvas.toDataURL());
+          //console.log('Persisted', key);
+        } catch (error) {
+          //console.log('Memorized', key);
+          // Ignore quota error, the user either gave or didn't give persistent storage permission
+        }
+      });
+
+      tileImage.addEventListener('error', reject);
+    });
+
+    // Store the loading promise so that we know not to load it again while it loads and wait instead
+    tileCache[key] = promise;
+    return promise;
+  }
 });
 
 // TODO: Combine the `render` and `mousemove` handler code into one and memoize the intermediate results in class fields
@@ -328,93 +429,4 @@ class Map {
   render() {
 
   }
-}
-
-const tileCache = {};
-const cacheCanvas = document.createElement('canvas');
-function getTile(x, y, z) {
-  const key = `${z}-${x}-${y}`;
-  const promise = new Promise((resolve, reject) => {
-    const tileImage = new Image();
-
-    // See if we already have this tile in memory
-    const match = tileCache[key] || localStorage[key];
-    if (match) {
-      // Wait if we do not have the tile yet but we are already downloading it
-      if (match instanceof Promise) {
-        match.then(resolve, reject);
-        return;
-      }
-
-      // Convert Base64 data URI in local storage to image for returing
-      if (typeof match === 'string') {
-        let decodeResolve;
-        let decodeReject;
-
-        // Present a promise for the decoding to avoid duplicate work while decoding
-        tileCache[key] = new Promise((resolve, reject) => {
-          decodeResolve = resolve;
-          decodeReject = reject;
-        });
-
-        // Load the image from the data URI in the local storage
-        tileImage.src = match;
-
-        tileImage.addEventListener('load', () => {
-          resolve(tileImage);
-          decodeResolve(tileImage);
-
-          // Cache in memory
-          tileCache[key] = tileImage;
-          //console.log('Restored', key);
-        });
-
-        tileImage.addEventListener('error', event => {
-          reject(event);
-          decodeReject(event);
-        });
-
-        return;
-      }
-
-      // Resolve with the cached tile image
-      resolve(match);
-      return;
-    }
-
-    // Obtain the tile image asynchronously for caching
-    tileImage.src = `https://mapserver.mapy.cz/base-m/${z}-${x}-${y}`;
-
-    // Ensure CORS is disabled so that `context.drawImage` is not insecure
-    tileImage.crossOrigin = 'anonymous';
-
-    tileImage.addEventListener('load', () => {
-      resolve(tileImage);
-
-      // Cache in memory
-      tileCache[key] = tileImage;
-
-      // Cache in storage
-      // TODO: Use OffscreenCanvas when supported
-      cacheCanvas.width = tileImage.naturalWidth;
-      cacheCanvas.height = tileImage.naturalHeight;
-
-      const context = cacheCanvas.getContext('2d');
-      context.drawImage(tileImage, 0, 0);
-
-      try {
-        localStorage.setItem(key, cacheCanvas.toDataURL());
-        //console.log('Persisted', key);
-      } catch (error) {
-        //console.log('Memorized', key);
-        // Ignore quota error, the user either gave or didn't give persistent storage permission
-      }
-    });
-
-    tileImage.addEventListener('error', reject);
-  });
-
-  // Store the loading promise so that we know not to load it again while it loads and wait instead
-  tileCache[key] = promise;
-  return promise;
 }
