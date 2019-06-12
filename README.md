@@ -1,4 +1,4 @@
-# Seznam Maps
+# OSM Raster Tile Map
 
 This project demonstrates the use of raster tiles from a publicly reachable, unauthenticated Mapy.cz tile server.
 
