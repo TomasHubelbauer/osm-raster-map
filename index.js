@@ -286,7 +286,8 @@ window.addEventListener('load', async () => {
             }
 
             // Draw the tile image
-            context.drawImage(tile, tileCanvasX, tileCanvasY);
+            // TODO: Link tile size to the selected server because the HD one is 512x512 so we need to downscale it by passing the dimensions here
+            context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
 
             // Find POIs on this tile
             for (const poi of pois) {
@@ -396,10 +397,12 @@ window.addEventListener('load', async () => {
       }
 
       // Obtain the tile image asynchronously for caching
+      const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
       switch (server) {
         case 'mapy.cz': tileImage.src = `https://mapserver.mapy.cz/base-m/${z}-${x}-${y}`; break;
-        case 'osm': const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)]; tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`; break;
+        case 'osm': tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`; break;
         case 'wikimedia': tileImage.src = `https://maps.wikimedia.org/osm-intl/${z}/${x}/${y}.png`; break;
+        case 'fau': tileImage.src = `https://yacdn.org/serve/https://${balance}.osm.rrze.fau.de/osmhd/${z}/${x}/${y}.png`; break;
         default: throw new Error('Unknown tile server');
       }
 
