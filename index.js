@@ -4,13 +4,14 @@ window.addEventListener('load', async () => {
   const tileCache = {};
   const cacheCanvas = document.createElement('canvas');
 
-  let { latitude, longitude, zoom } = localStorage['map']
+  let { latitude, longitude, zoom, accuracy } = localStorage['map']
     ? JSON.parse(localStorage['map'])
     : await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(position => {
         const longitude = position.coords.longitude;
         const latitude = position.coords.latitude;
-        const map = { longitude, latitude, zoom: 12 };
+        const accuracy = position.coords.accuracy;
+        const map = { longitude, latitude, zoom: 12, accuracy };
         localStorage['map'] = JSON.stringify(map);
         resolve(map);
       }, reject, { enableHighAccuracy: true })
@@ -19,8 +20,8 @@ window.addEventListener('load', async () => {
   document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
   document.getElementById('zoomSpan').textContent = zoom;
 
-  const pins = [{ longitude, latitude }];
-  document.getElementById('pinsSpan').textContent = pins.length + (pins.length === 1 ? ' pin' : ' pins');
+  const pois = [{ type: 'locator', longitude, latitude, accuracy }];
+  document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
 
   const zoomInButton = document.getElementById('zoomInButton');
   zoomInButton.addEventListener('click', () => {
@@ -94,8 +95,8 @@ window.addEventListener('load', async () => {
               return;
             }
 
-            pins.push({ longitude: pointerLongitude, latitude: pointerLatitude });
-            document.getElementById('pinsSpan').textContent = pins.length + (pins.length === 1 ? ' pin' : ' pins');
+            pois.push({ type: 'pin', longitude: pointerLongitude, latitude: pointerLatitude });
+            document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
             render();
           }, doubleClickThreshold + 10);
         }
@@ -287,22 +288,35 @@ window.addEventListener('load', async () => {
             // Draw the tile image
             context.drawImage(tile, tileCanvasX, tileCanvasY);
 
-            // Find pins on this tile
-            for (const pin of pins) {
-              const longitudeNumber = (pin.longitude + 180) / 360 * Math.pow(2, zoom);
+            // Find POIs on this tile
+            for (const poi of pois) {
+              const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
               const longitudeIndex = Math.floor(longitudeNumber);
               const longitudeRatio = longitudeNumber % 1;
-              const latitudeNumber = (1 - Math.log(Math.tan(pin.latitude * Math.PI / 180) + 1 / Math.cos(pin.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+              const latitudeNumber = (1 - Math.log(Math.tan(poi.latitude * Math.PI / 180) + 1 / Math.cos(poi.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
               const latitudeIndex = Math.floor(latitudeNumber);
               const latitudeRatio = latitudeNumber % 1;
 
-              // Draw the pin if it belongs to this tile
-              // TODO: Address the ticket which deals with pins clipping if they are closer to the edge of the tile than their radius
+              // Draw the POI if it belongs to this tile
+              // TODO: Address the ticket which deals with POIs clipping if they are closer to the edge of the tile than their radius
               if (tileLongitudeIndex === longitudeIndex && tileLatitudeIndex === latitudeIndex) {
-                context.fillStyle = 'blue';
-                context.beginPath();
-                context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 10, 0, Math.PI * 2);
-                context.fill();
+                switch (poi.type) {
+                  case 'locator': {
+                    context.fillStyle = 'rgba(0, 0, 255, .2)';
+                    context.beginPath();
+                    const accuracyRadius = (100 / accuracy /* % */) * zoom;
+                    context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
+                    context.fill();
+                    break;
+                  }
+                  case 'pin': {
+                    context.fillStyle = 'rgba(0, 0, 0, .5)';
+                    context.beginPath();
+                    context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 5, 0, Math.PI * 2);
+                    context.fill();
+                    break;
+                  }
+                }
               }
             }
 

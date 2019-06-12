@@ -7,12 +7,12 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
 - Put back drawing strokes on the map, for now with antialiasing multiplication, in the future smarter with double buffer
+  and use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
   canvas or by redrawing only the stroke portion of each tile, for each tile as it renders
 - Consider handling single primary and secondary clicks by carrying out the action and then reverting it if double click
   as opposed to waiting to see if double click happened and only after determining it did not carrying out the action
   (This could improve the perceived performance of the UI)
 - Fix the mobile error/panning error
-- Change pins to points and have two kinds - location point with accuracy radius reflected at map size and manual one which is always 5px
 - Persist map configuration (longitude, latitude, zoom) after each change to restore where left off
   (Possibly combine this with refactoring the map code to a class `Map` with events like onTileLoad, onTileRender etc.)
 - Implement pinch to zoom
