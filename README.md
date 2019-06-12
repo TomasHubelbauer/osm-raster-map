@@ -6,6 +6,8 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Hook up `+` and `-` keys for zoom in/out at the current map center
+- Persist pins & strokes in the local storage
 - Put back drawing strokes on the map, for now with antialiasing multiplication, in the future smarter with double buffer
   and use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
   canvas or by redrawing only the stroke portion of each tile, for each tile as it renders
