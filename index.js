@@ -187,6 +187,11 @@ window.addEventListener('load', async () => {
       document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
       render();
     }
+
+    // Try to make iOS Safari not over-scroll the page upon
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
   });
 
   mapCanvas.addEventListener('contextmenu', event => {
