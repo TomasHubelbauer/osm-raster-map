@@ -1,4 +1,6 @@
 window.addEventListener('load', async () => {
+  window.addEventListener('error', event => alert(event.error));
+
   const tileWidth = 256;
   const tileHeight = 256;
   const tileCache = {};
