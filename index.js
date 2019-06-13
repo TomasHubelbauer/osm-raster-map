@@ -57,6 +57,24 @@ window.addEventListener('load', async () => {
     render();
   });
 
+  const trackButton = document.getElementById('trackButton');
+  trackButton.addEventListener('click', () => {
+    trackButton.disabled = true;
+
+    navigator.geolocation.watchPosition(
+      position => {
+        pois.push({ type: 'pin', longitude: position.coords.longitude, latitude: position.coords.latitude });
+        document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
+        render();
+      },
+      error => {
+        alert('Unable to track live position: ' + error.code + ' ' + error.message);
+        trackButton.disabled = false;
+      },
+      { enableHighAccuracy: true },
+    );
+  });
+
   const mapCanvas = document.getElementById('mapCanvas');
 
   let pointerX;
