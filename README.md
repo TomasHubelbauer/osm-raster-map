@@ -8,6 +8,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
 - Implement watching location changes and plotting the route as pins on the map each time a new location is provided
 - Hook up the arrow buttons for map panning
 - Consider adding support for https://www.mapzen.com/projects/vector-tiles/ which is vector but has slippy tiles
