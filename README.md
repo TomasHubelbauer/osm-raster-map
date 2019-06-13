@@ -8,6 +8,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Hook up the arrow buttons for map panning
 - Consider adding support for https://www.mapzen.com/projects/vector-tiles/ which is vector but has slippy tiles
 - Check out https://wiki.openstreetmap.org/wiki/Downloading_data#Construct_a_URL_for_the_HTTP_API for vectors from OSM
 - See if I can compress `Planet.osm` or use a portion (Czech Republic / Prague) in the repository
