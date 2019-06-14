@@ -214,8 +214,8 @@ window.addEventListener('load', async () => {
     document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
 
     if (lastTouch) {
-      const movementX = lastTouch.x - event.touches[0].clientX;
-      const movementY = lastTouch.y - event.touches[0].clientY;
+      const movementX = event.touches[0].clientX - lastTouch.x;
+      const movementY = event.touches[0].clientY - lastTouch.y;
 
       // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
       const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
