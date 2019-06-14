@@ -50,7 +50,6 @@ window.addEventListener('load', async () => {
   let mode = 'browse';
   const modeButton = document.getElementById('modeButton');
   modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
-
   modeButton.addEventListener('click', () => {
     mode = mode === 'browse' ? 'draw' : 'browse';
     modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
@@ -275,6 +274,71 @@ window.addEventListener('load', async () => {
 
   window.addEventListener('resize', render);
 
+  document.body.addEventListener('keydown', event => {
+    switch (event.key) {
+      case '+': {
+        if (zoom >= 18) {
+          break;
+        }
+
+        zoom++;
+        document.getElementById('zoomSpan').textContent = zoom;
+        render();
+        break;
+      }
+      case '-': {
+        if (zoom <= 0) {
+          break;
+        }
+
+        zoom--;
+        document.getElementById('zoomSpan').textContent = zoom;
+        render();
+        break;
+      }
+      case 'ArrowLeft': {
+        if (longitude <= .0025) {
+          break;
+        }
+
+        longitude -= .0025;
+        document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+        render();
+        break;
+      }
+      case 'ArrowRight': {
+        if (longitude >= 180 - .0025) {
+          break;
+        }
+
+        longitude += .0025;
+        document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+        render();
+        break;
+      }
+      case 'ArrowUp': {
+        if (latitude >= 90 - .0025) {
+          break;
+        }
+
+        latitude += .0025;
+        document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+        render();
+        break;
+      }
+      case 'ArrowDown': {
+        if (latitude <= .0025) {
+          break;
+        }
+
+        latitude -= .0025;
+        document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+        render();
+        break;
+      }
+    }
+  });
+
   let context;
   let canvasWidth;
   let canvasHeight;
@@ -380,7 +444,7 @@ window.addEventListener('load', async () => {
                   case 'locator': {
                     context.fillStyle = 'rgba(0, 0, 255, .2)';
                     context.beginPath();
-                    const accuracyRadius = (100 / accuracy /* % */) * zoom;
+                    const accuracyRadius = (100 / accuracy /* % */) * zoom / 2;
                     context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
                     context.fill();
                     break;

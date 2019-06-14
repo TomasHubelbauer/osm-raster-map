@@ -9,13 +9,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
 - Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
-- Implement watching location changes and plotting the route as pins on the map each time a new location is provided
-- Hook up the arrow buttons for map panning
-- Consider adding support for https://www.mapzen.com/projects/vector-tiles/ which is vector but has slippy tiles
-- Check out https://wiki.openstreetmap.org/wiki/Downloading_data#Construct_a_URL_for_the_HTTP_API for vectors from OSM
-- See if I can compress `Planet.osm` or use a portion (Czech Republic / Prague) in the repository
-- Link server and tile size together so the HD one (512) and the others (256) work correctly
-- Hook up `+` and `-` keys for zoom in/out at the current map center
+- Link server and tile size together so the HD one (512) and the others (256) work correctly without specifying size in `drawImage`
 - Persist pins & strokes in the local storage
 - Put back drawing strokes on the map, for now with antialiasing multiplication, in the future smarter with double buffer
   and use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
@@ -23,7 +17,6 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
 - Consider handling single primary and secondary clicks by carrying out the action and then reverting it if double click
   as opposed to waiting to see if double click happened and only after determining it did not carrying out the action
   (This could improve the perceived performance of the UI)
-- Fix the mobile error/panning error
 - Persist map configuration (longitude, latitude, zoom) after each change to restore where left off
   (Possibly combine this with refactoring the map code to a class `Map` with events like onTileLoad, onTileRender etc.)
 - Implement pinch to zoom
