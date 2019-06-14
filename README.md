@@ -8,6 +8,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Hook up touch events for zoom in / out on double tap
 - Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
 - Link server and tile size together so the HD one (512) and the others (256) work correctly without specifying size in `drawImage`
 - Persist pins & strokes in the local storage
