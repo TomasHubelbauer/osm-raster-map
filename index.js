@@ -205,12 +205,62 @@ window.addEventListener('load', async () => {
       document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
       render();
     }
+  });
+
+  let lastTouch;
+  mapCanvas.addEventListener('touchmove', event => {
+    pointerX = event.touches[0].clientX;
+    pointerY = event.touches[0].clientY;
+    document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
+
+    if (lastTouch) {
+      const movementX = lastTouch.x - event.touches[0].clientX;
+      const movementY = lastTouch.y - event.touches[0].clientY;
+
+      // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
+      const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
+      const centerTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+
+      const centerDifferenceX = pointerX - canvasWidth / 2;
+      const centerDifferenceY = pointerY - canvasHeight / 2;
+
+      // Transfer the difference in canvas pixels to a difference in tile numbers (multiples of tile size)
+      let pointerTileLongitudeNumber = centerTileLongitudeNumber + centerDifferenceX / tileWidth;
+      let pointerTileLatitudeNumber = centerTileLatitudeNumber + centerDifferenceY / tileHeight;
+
+      // Calculate the new longitude using the reserve formula plugging in the adjusted tile longitude number
+      pointerLongitude = pointerTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+
+      // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
+      const pointerN = Math.PI - 2 * Math.PI * pointerTileLatitudeNumber / Math.pow(2, zoom);
+      pointerLatitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(pointerN) - Math.exp(-pointerN)));
+
+      document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude.toFixed(4)} ${pointerLatitude.toFixed(4)}`;
+
+      // Transfer the change in canvas pixels to a change in tile numbers (multiples of tile size)
+      let newCenterTileLongitudeNumber = centerTileLongitudeNumber + -movementX / tileWidth;
+      let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -movementY / tileHeight;
+
+      // Calculate the new longitude using the reserve formula plugging in the adjusted tile longitude number
+      longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+
+      // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
+      const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
+      latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+
+      document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+      render();
+    }
+
+    lastTouch = { id: event.touches[0].identifier, x: event.touches[0].clientX, y: event.touches[0].clientY };
 
     // Try to make iOS Safari not over-scroll the page upon
     event.preventDefault();
     event.stopPropagation();
     return false;
   });
+
+  mapCanvas.addEventListener('touchend', () => lastTouch = undefined);
 
   mapCanvas.addEventListener('contextmenu', event => {
     event.preventDefault();
