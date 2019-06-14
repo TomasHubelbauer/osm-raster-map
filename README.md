@@ -8,6 +8,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Update locator POI in track mode
 - Use `canvas` clipping to confine repainted POIs and strokes within the currently updated tile https://www.w3schools.com/tags/canvas_clip.asp
 - Hook up touch events for zoom in / out on double tap
 - Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
