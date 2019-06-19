@@ -8,6 +8,7 @@ I've built it for fun and as a detour from trying to figure out a frustrating pr
 
 I generally believe raster tiles are inferior to vector tiles, but boy, are they easier to work with!
 
+- Make double click to zoom in and out zoom so that the point stays under the cursor not in the center
 - Seed location and zoom from storage but replace with live values when available
 - Implement fractional zoom
 - Export tracks as SVG for saving to Files on iOS
