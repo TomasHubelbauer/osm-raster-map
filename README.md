@@ -1,6 +1,6 @@
 # OSM Raster Tile Map
 
-[**DEMO**](https://tomashubelbauer.github.io/osm-raster-tile-map/)
+[**DEMO**](https://tomashubelbauer.github.io/osm-raster-map)
 
 This project demonstrates the use of raster tiles from a publicly reachable, unauthenticated Mapy.cz tile server.
 
