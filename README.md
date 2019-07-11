@@ -32,3 +32,4 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
   (DevTools FPS profile with programmatic pan/zoom sequence with clear cache?)
 - Use `OffscreenCanvas` in the tile cache if supported (right now only Chrome)
 - Consider redrawing the whole canvas on each new tile load so that strokes and pins could be drawn once without getting clipped
+- Check out http://tile.poloha.net/overlay/{zoom}/{x}/{y}.png as per https://wiki.openstreetmap.org/wiki/WikiProject_Czech_Republic
