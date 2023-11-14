@@ -538,7 +538,7 @@ window.addEventListener('load', async () => {
       // Obtain the tile image asynchronously for caching
       const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
       switch (server) {
-        case 'mapy.cz': tileImage.src = `https://mapserver.mapy.cz/base-m/${z}-${x}-${y}`; break;
+        case 'mapy.cz': tileImage.src = `https://mapserver.mapy.cz/bing/${z}-${x}-${y}`; break;
         case 'osm': tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`; break;
         case 'wikimedia': tileImage.src = `https://maps.wikimedia.org/osm-intl/${z}/${x}/${y}.png`; break;
         case 'fau': tileImage.src = `https://yacdn.org/serve/https://${balance}.osm.rrze.fau.de/osmhd/${z}/${x}/${y}.png`; break;
