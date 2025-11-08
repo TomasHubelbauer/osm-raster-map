@@ -30,7 +30,6 @@ navigator.geolocation.watchPosition(
 
 /** @type {{ type: 'locator', longitude: number, latitude: number, accuracy: number }} */
 const pois = [];
-document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
 
 const zoomInButton = document.getElementById('zoomInButton');
 zoomInButton.addEventListener('click', () => {
@@ -90,7 +89,6 @@ mapCanvas.addEventListener('pointerdown', event => {
           }
 
           pois.push({ type: 'pin', longitude: pointerLongitude, latitude: pointerLatitude });
-          document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
           render();
         }, doubleClickThreshold + 10);
       }
