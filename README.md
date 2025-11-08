@@ -22,8 +22,6 @@ https://www.w3schools.com/tags/canvas_clip.asp
 
 ### Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
 
-### Persist pins & strokes in the local storage
-
 ### Put back drawing strokes on the map (canvas clip to tile being rerendered)
 
 use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
