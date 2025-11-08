@@ -32,6 +32,4 @@ use https://stackoverflow.com/a/365853/2715716 to display the stroke length in k
 
 DevTools FPS profile with programmatic pan/zoom sequence with clear cache?
 
-### Use `OffscreenCanvas` in the tile cache if supported (right now only Chrome)
-
 ### Consider redrawing the whole canvas on each new tile load so that strokes and pins could be drawn once without getting clipped

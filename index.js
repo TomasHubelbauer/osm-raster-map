@@ -1,7 +1,6 @@
 const tileWidth = 256;
 const tileHeight = 256;
 const tileCache = {};
-const cacheCanvas = document.createElement('canvas');
 
 /** @type {GeolocationCoordinates | undefined} */
 let liveCoords;
@@ -540,17 +539,7 @@ function getTile(x, y, z) {
 
     tileImage.addEventListener('load', () => {
       resolve(tileImage);
-
-      // Cache in memory
       tileCache[key] = tileImage;
-
-      // Cache in storage
-      // TODO: Use OffscreenCanvas when supported
-      cacheCanvas.width = tileImage.naturalWidth;
-      cacheCanvas.height = tileImage.naturalHeight;
-
-      const context = cacheCanvas.getContext('2d');
-      context.drawImage(tileImage, 0, 0);
     });
 
     tileImage.addEventListener('error', reject);
