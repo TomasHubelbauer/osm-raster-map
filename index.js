@@ -262,13 +262,6 @@ mapCanvas.addEventListener('contextmenu', event => {
   event.preventDefault();
 });
 
-const serverSelect = document.getElementById('serverSelect');
-let server = serverSelect.value;
-serverSelect.addEventListener('change', () => {
-  server = serverSelect.value;
-  render();
-});
-
 window.addEventListener('resize', render);
 
 document.body.addEventListener('keydown', event => {
@@ -422,7 +415,6 @@ function render() {
           }
 
           // Draw the tile image
-          // TODO: Link tile size to the selected server because the HD one is 512x512 so we need to downscale it by passing the dimensions here
           context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
 
           // Find POIs on this tile
@@ -483,7 +475,7 @@ function render() {
 render();
 
 function getTile(x, y, z) {
-  const key = `${server}-${z}-${x}-${y}`;
+  const key = `osm-${z}-${x}-${y}`;
   const promise = new Promise((resolve, reject) => {
     const tileImage = new Image();
 
@@ -534,11 +526,7 @@ function getTile(x, y, z) {
 
     // Obtain the tile image asynchronously for caching
     const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
-    switch (server) {
-      case 'mapy.cz': tileImage.src = `https://mapserver.mapy.cz/bing/${z}-${x}-${y}`; break;
-      case 'osm': tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`; break;
-      default: throw new Error('Unknown tile server');
-    }
+    tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
 
     // Ensure CORS is disabled so that `context.drawImage` is not insecure
     tileImage.crossOrigin = 'anonymous';
