@@ -14,8 +14,6 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
 
 ### Implement fractional zoom
 
-### Export tracks as SVG for saving to Files on iOS
-
 ### Use `canvas` clipping to confine repainted POIs and strokes within the currently updated tile
 
 https://www.w3schools.com/tags/canvas_clip.asp
