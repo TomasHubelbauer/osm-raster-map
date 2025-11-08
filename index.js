@@ -1,5 +1,7 @@
 const tileWidth = 256;
 const tileHeight = 256;
+
+/** @type {{ [key: string]: Promise | Error | HTMLImageElement }}} */
 const tileCache = {};
 
 /** @type {GeolocationCoordinates | undefined} */
@@ -8,7 +10,7 @@ let liveCoords;
 /** @type {GeolocationCoordinates | undefined} */
 let mapCoords;
 
-let zoom = 10;
+let zoom = 15;
 
 navigator.geolocation.watchPosition(
   position => {
@@ -384,67 +386,70 @@ function render() {
         }
       }
 
-      // Fire and forget without `await` so that tiles render in paralell, not sequentially
-      getTile(tileLongitudeIndex, tileLatitudeIndex, zoom)
-        .then(tile => {
-          // Bail if the map has moved before this tile has been resolved
-          if (renderLongitude !== mapCoords.longitude || renderLatitude !== mapCoords.latitude || renderZoom !== zoom) {
-            return;
-          }
+      const tile = tileCache[`osm-${zoom}-${tileLongitudeIndex}-${tileLatitudeIndex}`];
+      if (!tile) {
+        // Fire and forget without `await` so that tiles render in paralell, not sequentially
+        void getTile(tileLongitudeIndex, tileLatitudeIndex, zoom).then(() => render()).catch(() => render());
+      }
+      else if (tile instanceof Error) {
+        // Bail if the map has moved before this tile has been rejected
+        if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
+          return;
+        }
 
-          // Draw the tile image
-          context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+        // Render the error message crudely and indicate the error with a red substrate for the tile
+        context.fillStyle = 'red';
+        context.fillRect(tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+        context.fillText(error.toString(), tileCanvasX, tileCanvasY, tileWidth);
+      }
+      else if (tile instanceof Promise) {
+        // Skip rendering while the tile is still loading
+      }
+      else {
+        // Bail if the map has moved before this tile has been resolved
+        if (renderLongitude !== mapCoords.longitude || renderLatitude !== mapCoords.latitude || renderZoom !== zoom) {
+          return;
+        }
 
-          const livePoi = liveCoords ? {
-            type: 'locator', longitude: liveCoords.longitude, latitude: liveCoords.latitude, accuracy: liveCoords.accuracy,
-          } : undefined;
+        // Draw the tile image
+        context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
 
-          // Find POIs on this tile
-          for (const poi of (livePoi ? [...pois, livePoi] : pois)) {
-            const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
-            const longitudeIndex = Math.floor(longitudeNumber);
-            const longitudeRatio = longitudeNumber % 1;
-            const latitudeNumber = (1 - Math.log(Math.tan(poi.latitude * Math.PI / 180) + 1 / Math.cos(poi.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
-            const latitudeIndex = Math.floor(latitudeNumber);
-            const latitudeRatio = latitudeNumber % 1;
+        const livePoi = liveCoords ? {
+          type: 'locator', longitude: liveCoords.longitude, latitude: liveCoords.latitude, accuracy: liveCoords.accuracy,
+        } : undefined;
 
-            // Draw the POI if it belongs to this tile
-            // TODO: Address the ticket which deals with POIs clipping if they are closer to the edge of the tile than their radius
-            if (tileLongitudeIndex === longitudeIndex && tileLatitudeIndex === latitudeIndex) {
-              switch (poi.type) {
-                case 'locator': {
-                  context.fillStyle = 'rgba(0, 0, 255, .2)';
-                  context.beginPath();
-                  const accuracyRadius = (100 / poi.accuracy /* % */) * zoom / 2;
-                  context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
-                  context.fill();
-                  break;
-                }
-                case 'pin': {
-                  context.fillStyle = 'rgba(0, 0, 0, .5)';
-                  context.beginPath();
-                  context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 5, 0, Math.PI * 2);
-                  context.fill();
-                  break;
-                }
+        // Find POIs on this tile
+        for (const poi of (livePoi ? [...pois, livePoi] : pois)) {
+          const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
+          const longitudeIndex = Math.floor(longitudeNumber);
+          const longitudeRatio = longitudeNumber % 1;
+          const latitudeNumber = (1 - Math.log(Math.tan(poi.latitude * Math.PI / 180) + 1 / Math.cos(poi.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+          const latitudeIndex = Math.floor(latitudeNumber);
+          const latitudeRatio = latitudeNumber % 1;
+
+          // Draw the POI if it belongs to this tile
+          // TODO: Address the ticket which deals with POIs clipping if they are closer to the edge of the tile than their radius
+          if (tileLongitudeIndex === longitudeIndex && tileLatitudeIndex === latitudeIndex) {
+            switch (poi.type) {
+              case 'locator': {
+                context.fillStyle = 'rgba(0, 0, 255, .2)';
+                context.beginPath();
+                const accuracyRadius = (100 / poi.accuracy /* % */) * zoom / 2;
+                context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
+                context.fill();
+                break;
+              }
+              case 'pin': {
+                context.fillStyle = 'rgba(0, 0, 0, .5)';
+                context.beginPath();
+                context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 5, 0, Math.PI * 2);
+                context.fill();
+                break;
               }
             }
           }
-
-          // TODO: Find the lines and line portions within this tile and redraw them
-        })
-        .catch(error => {
-          // Bail if the map has moved before this tile has been rejected
-          if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
-            return;
-          }
-
-          // Render the error message crudely and indicate the error with a red substrate for the tile
-          context.fillStyle = 'red';
-          context.fillRect(tileCanvasX, tileCanvasY, tileWidth, tileHeight);
-          context.fillText(error.toString(), tileCanvasX, tileCanvasY, tileWidth);
-        })
-        ;
+        }
+      }
     }
   }
 
