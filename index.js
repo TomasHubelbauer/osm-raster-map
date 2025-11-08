@@ -204,59 +204,48 @@ mapCanvas.addEventListener('touchmove', event => {
 });
 
 mapCanvas.addEventListener('touchend', () => lastTouch = undefined);
-
-mapCanvas.addEventListener('contextmenu', event => {
-  event.preventDefault();
-});
+mapCanvas.addEventListener('contextmenu', event => event.preventDefault());
 
 document.body.addEventListener('keydown', event => {
   switch (event.key) {
     case '+': {
-      if (zoom >= 18) {
-        break;
-      }
-
-      zoom++;
+      zoom = Math.min(zoom + 1, 18);
       break;
     }
     case '-': {
-      if (zoom <= 0) {
-        break;
-      }
-
-      zoom--;
+      zoom = Math.max(zoom - 1, 0);
       break;
     }
     case 'ArrowLeft': {
-      if (longitude <= .0025) {
+      if (mapCoords.longitude <= .0025) {
         break;
       }
 
-      longitude -= .0025;
+      mapCoords.longitude -= .0025;
       break;
     }
     case 'ArrowRight': {
-      if (longitude >= 180 - .0025) {
+      if (mapCoords.longitude >= 180 - .0025) {
         break;
       }
 
-      longitude += .0025;
+      mapCoords.longitude += .0025;
       break;
     }
     case 'ArrowUp': {
-      if (latitude >= 90 - .0025) {
+      if (mapCoords.latitude >= 90 - .0025) {
         break;
       }
 
-      latitude += .0025;
+      mapCoords.latitude += .0025;
       break;
     }
     case 'ArrowDown': {
-      if (latitude <= .0025) {
+      if (mapCoords.latitude <= .0025) {
         break;
       }
 
-      latitude -= .0025;
+      mapCoords.latitude -= .0025;
       break;
     }
   }
@@ -266,7 +255,7 @@ let context;
 let canvasWidth;
 let canvasHeight;
 
-requestAnimationFrame(function render() {
+requestAnimationFrame(function render(stamp) {
   if (!mapCoords) {
     requestAnimationFrame(render);
     return;
@@ -343,21 +332,17 @@ requestAnimationFrame(function render() {
         }
       }
 
-      const tile = tileCache[`osm-${zoom}-${tileLongitudeIndex}-${tileLatitudeIndex}`];
+      const key = `osm-${zoom}-${tileLongitudeIndex}-${tileLatitudeIndex}`;
+      const tile = tileCache[key];
       if (!tile) {
-        // Fire and forget without `await` so that tiles render in paralell, not sequentially
-        getTile(tileLongitudeIndex, tileLatitudeIndex, zoom);
-      }
-      else if (tile instanceof Error) {
-        // Bail if the map has moved before this tile has been rejected
-        if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
-          return;
-        }
-
-        // Render the error message crudely and indicate the error with a red substrate for the tile
-        context.fillStyle = 'red';
-        context.fillRect(tileCanvasX, tileCanvasY, tileWidth, tileHeight);
-        context.fillText(error.toString(), tileCanvasX, tileCanvasY, tileWidth);
+        // Store the loading promise so that we know not to load it again
+        tileCache[key] = new Promise(() => {
+          const tileImage = new Image();
+          tileImage.src = `https://${['a', 'b', 'c'][~~stamp % 3]}.tile.openstreetmap.org/${zoom}/${tileLongitudeIndex}/${tileLatitudeIndex}.png`;
+          tileImage.crossOrigin = 'anonymous';
+          tileImage.addEventListener('load', () => tileCache[key] = tileImage);
+          tileImage.addEventListener('error', error => tileCache[key] = error);
+        });
       }
       else if (tile instanceof Promise) {
         // Skip rendering while the tile is still loading
@@ -368,8 +353,14 @@ requestAnimationFrame(function render() {
           return;
         }
 
-        // Draw the tile image
-        context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+        if (tile instanceof HTMLImageElement) {
+          context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+        }
+        else {
+          context.fillStyle = 'red';
+          context.fillRect(tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+          context.fillText(String(tile), tileCanvasX, tileCanvasY, tileWidth);
+        }
       }
     }
   }
@@ -426,30 +417,3 @@ requestAnimationFrame(function render() {
   document.getElementById('tilesSpan').textContent = `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
   requestAnimationFrame(render);
 });
-
-function getTile(x, y, z) {
-  const key = `osm-${z}-${x}-${y}`;
-
-  // See if we already have this tile in memory
-  const match = tileCache[key];
-  if (match) {
-    return;
-  }
-
-  const promise = new Promise((resolve, reject) => {
-    const tileImage = new Image();
-
-    // Obtain the tile image asynchronously for caching
-    const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
-    tileImage.src = `https://${balance}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
-
-    // Ensure CORS is disabled so that `context.drawImage` is not insecure
-    tileImage.crossOrigin = 'anonymous';
-
-    tileImage.addEventListener('load', () => tileCache[key] = tileImage);
-    tileImage.addEventListener('error', reject);
-  });
-
-  // Store the loading promise so that we know not to load it again while it loads and wait instead
-  tileCache[key] = promise;
-}
