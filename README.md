@@ -26,10 +26,6 @@ https://www.w3schools.com/tags/canvas_clip.asp
 
 use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
 
-### Persist map configuration (longitude, latitude, zoom) after each change to restore where left off
-
-Possibly combine this with refactoring the map code to a class `Map` with events like onTileLoad, onTileRender etc.
-
 ### Implement pinch to zoom
 
 ### Benchmark the performance of the `canvas` and `img` based solutions somehow
