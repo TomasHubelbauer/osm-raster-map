@@ -54,15 +54,6 @@ zoomOutButton.addEventListener('click', () => {
   render();
 });
 
-let mode = 'browse';
-const modeButton = document.getElementById('modeButton');
-modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
-modeButton.addEventListener('click', () => {
-  mode = mode === 'browse' ? 'draw' : 'browse';
-  modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
-  render();
-});
-
 const mapCanvas = document.getElementById('mapCanvas');
 
 let pointerX;
@@ -74,11 +65,6 @@ const doubleClickThreshold = 250; // ms
 let strokes = [];
   /** @type{(undefined | { button: number; timestamp: number; timeout: number; x: number; y: number; })} */ let lastClick;
 mapCanvas.addEventListener('pointerdown', event => {
-  if (mode === 'draw') {
-    strokes.push([pointerLongitude, pointerLatitude]);
-    return;
-  }
-
   let timeout;
   switch (event.buttons) {
     case 1: {
@@ -177,12 +163,6 @@ mapCanvas.addEventListener('pointermove', event => {
   document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude.toFixed(4)} ${pointerLatitude.toFixed(4)}`;
 
   if (event.buttons === 1) {
-    if (mode === 'draw') {
-      strokes[strokes.length - 1].push(event.offsetX, event.offsetY);
-      render();
-      return;
-    }
-
     // Transfer the change in canvas pixels to a change in tile numbers (multiples of tile size)
     let newCenterTileLongitudeNumber = centerTileLongitudeNumber + -event.movementX / tileWidth;
     let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -event.movementY / tileHeight;
