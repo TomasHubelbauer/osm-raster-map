@@ -21,8 +21,6 @@ navigator.geolocation.watchPosition(
         latitude: liveCoords.latitude,
       };
     }
-
-    render();
   },
   error => {
     alert('Unable to track live position: ' + error.code + ' ' + error.message);
@@ -40,8 +38,6 @@ zoomInButton.addEventListener('click', () => {
   }
 
   zoom++;
-  document.getElementById('zoomSpan').textContent = zoom;
-  render();
 });
 
 const zoomOutButton = document.getElementById('zoomOutButton');
@@ -51,8 +47,6 @@ zoomOutButton.addEventListener('click', () => {
   }
 
   zoom--;
-  document.getElementById('zoomSpan').textContent = zoom;
-  render();
 });
 
 const mapCanvas = document.getElementById('mapCanvas');
@@ -76,11 +70,7 @@ mapCanvas.addEventListener('pointerdown', event => {
         if (zoom < 18) {
           mapCoords.longitude = pointerLongitude;
           mapCoords.latitude = pointerLatitude;
-          document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
-
           zoom++;
-          document.getElementById('zoomSpan').textContent = zoom;
-          render();
         }
       } else {
         // Schedule a primary button click handler which will fire until this click turns into a double click
@@ -91,7 +81,6 @@ mapCanvas.addEventListener('pointerdown', event => {
           }
 
           pois.push({ type: 'pin', longitude: pointerLongitude, latitude: pointerLatitude });
-          render();
         }, doubleClickThreshold + 10);
       }
 
@@ -105,11 +94,7 @@ mapCanvas.addEventListener('pointerdown', event => {
         if (zoom > 0) {
           mapCoords.longitude = pointerLongitude;
           mapCoords.latitude = pointerLatitude;
-          document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
-
           zoom--;
-          document.getElementById('zoomSpan').textContent = zoom;
-          render();
         }
       } else {
         // Schedule a secondary button click handler which will fire until this click turns into a double click
@@ -121,8 +106,6 @@ mapCanvas.addEventListener('pointerdown', event => {
 
           mapCoords.longitude = pointerLongitude;
           mapCoords.latitude = pointerLatitude;
-          document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-          render();
         }, doubleClickThreshold + 10);
       }
 
@@ -140,7 +123,6 @@ mapCanvas.addEventListener('pointermove', event => {
 
   pointerX = event.clientX;
   pointerY = event.clientY;
-  document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
 
   // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
   const centerTileLongitudeNumber = (mapCoords.longitude + 180) / 360 * Math.pow(2, zoom);
@@ -160,8 +142,6 @@ mapCanvas.addEventListener('pointermove', event => {
   const pointerN = Math.PI - 2 * Math.PI * pointerTileLatitudeNumber / Math.pow(2, zoom);
   pointerLatitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(pointerN) - Math.exp(-pointerN)));
 
-  document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude.toFixed(4)} ${pointerLatitude.toFixed(4)}`;
-
   if (event.buttons === 1) {
     // Transfer the change in canvas pixels to a change in tile numbers (multiples of tile size)
     let newCenterTileLongitudeNumber = centerTileLongitudeNumber + -event.movementX / tileWidth;
@@ -173,9 +153,6 @@ mapCanvas.addEventListener('pointermove', event => {
     // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
     const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
     mapCoords.latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-
-    document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
-    render();
   }
 });
 
@@ -183,7 +160,6 @@ let lastTouch;
 mapCanvas.addEventListener('touchmove', event => {
   pointerX = event.touches[0].clientX;
   pointerY = event.touches[0].clientY;
-  document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
 
   if (lastTouch) {
     const movementX = event.touches[0].clientX - lastTouch.x;
@@ -207,8 +183,6 @@ mapCanvas.addEventListener('touchmove', event => {
     const pointerN = Math.PI - 2 * Math.PI * pointerTileLatitudeNumber / Math.pow(2, zoom);
     pointerLatitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(pointerN) - Math.exp(-pointerN)));
 
-    document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude.toFixed(4)} ${pointerLatitude.toFixed(4)}`;
-
     // Transfer the change in canvas pixels to a change in tile numbers (multiples of tile size)
     let newCenterTileLongitudeNumber = centerTileLongitudeNumber + -movementX / tileWidth;
     let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -movementY / tileHeight;
@@ -219,9 +193,6 @@ mapCanvas.addEventListener('touchmove', event => {
     // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
     const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
     mapCoords.latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-
-    document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-    render();
   }
 
   lastTouch = { id: event.touches[0].identifier, x: event.touches[0].clientX, y: event.touches[0].clientY };
@@ -238,8 +209,6 @@ mapCanvas.addEventListener('contextmenu', event => {
   event.preventDefault();
 });
 
-window.addEventListener('resize', render);
-
 document.body.addEventListener('keydown', event => {
   switch (event.key) {
     case '+': {
@@ -248,8 +217,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       zoom++;
-      document.getElementById('zoomSpan').textContent = zoom;
-      render();
       break;
     }
     case '-': {
@@ -258,8 +225,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       zoom--;
-      document.getElementById('zoomSpan').textContent = zoom;
-      render();
       break;
     }
     case 'ArrowLeft': {
@@ -268,8 +233,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       longitude -= .0025;
-      document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-      render();
       break;
     }
     case 'ArrowRight': {
@@ -278,8 +241,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       longitude += .0025;
-      document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-      render();
       break;
     }
     case 'ArrowUp': {
@@ -288,8 +249,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       latitude += .0025;
-      document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-      render();
       break;
     }
     case 'ArrowDown': {
@@ -298,8 +257,6 @@ document.body.addEventListener('keydown', event => {
       }
 
       latitude -= .0025;
-      document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-      render();
       break;
     }
   }
@@ -309,9 +266,9 @@ let context;
 let canvasWidth;
 let canvasHeight;
 
-// https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-function render() {
+requestAnimationFrame(function render() {
   if (!mapCoords) {
+    requestAnimationFrame(render);
     return;
   }
 
@@ -389,7 +346,7 @@ function render() {
       const tile = tileCache[`osm-${zoom}-${tileLongitudeIndex}-${tileLatitudeIndex}`];
       if (!tile) {
         // Fire and forget without `await` so that tiles render in paralell, not sequentially
-        void getTile(tileLongitudeIndex, tileLatitudeIndex, zoom).then(() => render()).catch(() => render());
+        getTile(tileLongitudeIndex, tileLatitudeIndex, zoom);
       }
       else if (tile instanceof Error) {
         // Bail if the map has moved before this tile has been rejected
@@ -465,60 +422,22 @@ function render() {
   document.getElementById('tilesSpan').textContent = `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
   document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
   document.getElementById('zoomSpan').textContent = zoom;
-}
-
-// Render the initial map view
-render();
+  document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
+  document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude?.toFixed(4)} ${pointerLatitude?.toFixed(4)}`;
+  requestAnimationFrame(render);
+});
 
 function getTile(x, y, z) {
   const key = `osm-${z}-${x}-${y}`;
+
+  // See if we already have this tile in memory
+  const match = tileCache[key];
+  if (match) {
+    return;
+  }
+
   const promise = new Promise((resolve, reject) => {
     const tileImage = new Image();
-
-    // See if we already have this tile in memory
-    const match = tileCache[key];
-    if (match) {
-      // Wait if we do not have the tile yet but we are already downloading it
-      if (match instanceof Promise) {
-        match.then(resolve, reject);
-        return;
-      }
-
-      // Convert Base64 data URI in local storage to image for returing
-      if (typeof match === 'string') {
-        let decodeResolve;
-        let decodeReject;
-
-        // Present a promise for the decoding to avoid duplicate work while decoding
-        tileCache[key] = new Promise((resolve, reject) => {
-          decodeResolve = resolve;
-          decodeReject = reject;
-        });
-
-        // Load the image from the data URI in the local storage
-        tileImage.src = match;
-
-        tileImage.addEventListener('load', () => {
-          resolve(tileImage);
-          decodeResolve(tileImage);
-
-          // Cache in memory
-          tileCache[key] = tileImage;
-          //console.log('Restored', key);
-        });
-
-        tileImage.addEventListener('error', event => {
-          reject(event);
-          decodeReject(event);
-        });
-
-        return;
-      }
-
-      // Resolve with the cached tile image
-      resolve(match);
-      return;
-    }
 
     // Obtain the tile image asynchronously for caching
     const balance = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
@@ -527,15 +446,10 @@ function getTile(x, y, z) {
     // Ensure CORS is disabled so that `context.drawImage` is not insecure
     tileImage.crossOrigin = 'anonymous';
 
-    tileImage.addEventListener('load', () => {
-      resolve(tileImage);
-      tileCache[key] = tileImage;
-    });
-
+    tileImage.addEventListener('load', () => tileCache[key] = tileImage);
     tileImage.addEventListener('error', reject);
   });
 
   // Store the loading promise so that we know not to load it again while it loads and wait instead
   tileCache[key] = promise;
-  return promise;
 }
