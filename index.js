@@ -3,18 +3,20 @@ const tileHeight = 256;
 const tileCache = {};
 const cacheCanvas = document.createElement('canvas');
 
-let { latitude, longitude, zoom, accuracy } = localStorage['map']
-  ? JSON.parse(localStorage['map'])
-  : await new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(position => {
-      const longitude = position.coords.longitude;
-      const latitude = position.coords.latitude;
-      const accuracy = position.coords.accuracy;
-      const map = { longitude, latitude, zoom: 12, accuracy };
-      localStorage['map'] = JSON.stringify(map);
-      resolve(map);
-    }, reject, { enableHighAccuracy: true })
-  });
+/** @type {GeolocationCoordinates | undefined} */
+let coords;
+
+navigator.geolocation.watchPosition(
+  position => {
+    pois.push({ type: 'pin', longitude: position.coords.longitude, latitude: position.coords.latitude });
+    document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
+    render();
+  },
+  error => {
+    alert('Unable to track live position: ' + error.code + ' ' + error.message);
+  },
+  { enableHighAccuracy: true },
+);
 
 document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
 document.getElementById('zoomSpan').textContent = zoom;
@@ -51,24 +53,6 @@ modeButton.addEventListener('click', () => {
   mode = mode === 'browse' ? 'draw' : 'browse';
   modeButton.textContent = mode === 'browse' ? 'Browsing mode. Switch to drawing' : 'Drawing mode. Switch to browsing';
   render();
-});
-
-const trackButton = document.getElementById('trackButton');
-trackButton.addEventListener('click', () => {
-  trackButton.disabled = true;
-
-  navigator.geolocation.watchPosition(
-    position => {
-      pois.push({ type: 'pin', longitude: position.coords.longitude, latitude: position.coords.latitude });
-      document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
-      render();
-    },
-    error => {
-      alert('Unable to track live position: ' + error.code + ' ' + error.message);
-      trackButton.disabled = false;
-    },
-    { enableHighAccuracy: true },
-  );
 });
 
 const mapCanvas = document.getElementById('mapCanvas');
@@ -480,7 +464,7 @@ function getTile(x, y, z) {
     const tileImage = new Image();
 
     // See if we already have this tile in memory
-    const match = tileCache[key] || localStorage[key];
+    const match = tileCache[key];
     if (match) {
       // Wait if we do not have the tile yet but we are already downloading it
       if (match instanceof Promise) {
@@ -544,15 +528,6 @@ function getTile(x, y, z) {
 
       const context = cacheCanvas.getContext('2d');
       context.drawImage(tileImage, 0, 0);
-
-      try {
-        // Uncomment the following to enable local storage cache to avoid abusing the map tile servers
-        //localStorage.setItem(key, cacheCanvas.toDataURL());
-        //console.log('Persisted', key);
-      } catch (error) {
-        //console.log('Memorized', key);
-        // Ignore quota error, the user either gave or didn't give persistent storage permission
-      }
     });
 
     tileImage.addEventListener('error', reject);
