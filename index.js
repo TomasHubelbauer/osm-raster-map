@@ -413,39 +413,46 @@ function render() {
 
         // Draw the tile image
         context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
+      }
+    }
+  }
 
-        const livePoi = liveCoords ? {
-          type: 'locator', longitude: liveCoords.longitude, latitude: liveCoords.latitude, accuracy: liveCoords.accuracy,
-        } : undefined;
+  const livePoi = liveCoords ? {
+    type: 'locator', longitude: liveCoords.longitude, latitude: liveCoords.latitude, accuracy: liveCoords.accuracy,
+  } : undefined;
 
-        // Find POIs on this tile
-        for (const poi of (livePoi ? [...pois, livePoi] : pois)) {
-          const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
-          const longitudeIndex = Math.floor(longitudeNumber);
-          const longitudeRatio = longitudeNumber % 1;
-          const latitudeNumber = (1 - Math.log(Math.tan(poi.latitude * Math.PI / 180) + 1 / Math.cos(poi.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
-          const latitudeIndex = Math.floor(latitudeNumber);
-          const latitudeRatio = latitudeNumber % 1;
+  for (let horizontalTileIndex = 0; horizontalTileIndex < horizontalTileCount; horizontalTileIndex++) {
+    const tileCanvasX = leftColumnTilesCanvasX + horizontalTileIndex * tileWidth;
+    const tileLongitudeIndex = leftColumnTilesLongitudeIndex + horizontalTileIndex;
 
-          // Draw the POI if it belongs to this tile
-          // TODO: Address the ticket which deals with POIs clipping if they are closer to the edge of the tile than their radius
-          if (tileLongitudeIndex === longitudeIndex && tileLatitudeIndex === latitudeIndex) {
-            switch (poi.type) {
-              case 'locator': {
-                context.fillStyle = 'rgba(0, 0, 255, .2)';
-                context.beginPath();
-                const accuracyRadius = (100 / poi.accuracy /* % */) * zoom / 2;
-                context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
-                context.fill();
-                break;
-              }
-              case 'pin': {
-                context.fillStyle = 'rgba(0, 0, 0, .5)';
-                context.beginPath();
-                context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 5, 0, Math.PI * 2);
-                context.fill();
-                break;
-              }
+    for (let verticalTileIndex = 0; verticalTileIndex < verticalTileCount; verticalTileIndex++) {
+      const tileCanvasY = topRowTilesCanvasY + verticalTileIndex * tileHeight;
+      const tileLatitudeIndex = topRowTilesLatitudeIndex + verticalTileIndex;
+
+      for (const poi of (livePoi ? [...pois, livePoi] : pois)) {
+        const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
+        const longitudeIndex = Math.floor(longitudeNumber);
+        const longitudeRatio = longitudeNumber % 1;
+        const latitudeNumber = (1 - Math.log(Math.tan(poi.latitude * Math.PI / 180) + 1 / Math.cos(poi.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+        const latitudeIndex = Math.floor(latitudeNumber);
+        const latitudeRatio = latitudeNumber % 1;
+
+        if (tileLongitudeIndex === longitudeIndex && tileLatitudeIndex === latitudeIndex) {
+          switch (poi.type) {
+            case 'locator': {
+              context.fillStyle = 'rgba(0, 0, 255, .2)';
+              context.beginPath();
+              const accuracyRadius = (100 / poi.accuracy /* % */) * zoom / 2;
+              context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
+              context.fill();
+              break;
+            }
+            case 'pin': {
+              context.fillStyle = 'rgba(0, 0, 0, .5)';
+              context.beginPath();
+              context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, 5, 0, Math.PI * 2);
+              context.fill();
+              break;
             }
           }
         }

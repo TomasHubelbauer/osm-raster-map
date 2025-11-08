@@ -14,17 +14,9 @@ I generally believe raster tiles are inferior to vector tiles, but boy, are they
 
 ### Implement fractional zoom
 
-### Use `canvas` clipping to confine repainted POIs and strokes within the currently updated tile
-
-https://www.w3schools.com/tags/canvas_clip.asp
-
 ### Hook up touch events for zoom in / out on double tap
 
 ### Add support for rotating the map (by UI buttons as well as `heading` from geo loc) - use `canvas` transforms
-
-### Put back drawing strokes on the map (canvas clip to tile being rerendered)
-
-use https://stackoverflow.com/a/365853/2715716 to display the stroke length in km/m
 
 ### Implement pinch to zoom
 
