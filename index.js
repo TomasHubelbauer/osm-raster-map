@@ -4,12 +4,23 @@ const tileCache = {};
 const cacheCanvas = document.createElement('canvas');
 
 /** @type {GeolocationCoordinates | undefined} */
-let coords;
+let liveCoords;
+
+/** @type {GeolocationCoordinates | undefined} */
+let mapCoords;
+
+let zoom = 10;
 
 navigator.geolocation.watchPosition(
   position => {
-    pois.push({ type: 'pin', longitude: position.coords.longitude, latitude: position.coords.latitude });
-    document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
+    liveCoords = position.coords;
+    if (!mapCoords) {
+      mapCoords = {
+        longitude: liveCoords.longitude,
+        latitude: liveCoords.latitude,
+      };
+    }
+
     render();
   },
   error => {
@@ -18,10 +29,8 @@ navigator.geolocation.watchPosition(
   { enableHighAccuracy: true },
 );
 
-document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
-document.getElementById('zoomSpan').textContent = zoom;
-
-const pois = [{ type: 'locator', longitude, latitude, accuracy }];
+/** @type {{ type: 'locator', longitude: number, latitude: number, accuracy: number }} */
+const pois = [];
 document.getElementById('poisSpan').textContent = pois.length + (pois.length === 1 ? ' poi' : ' pois');
 
 const zoomInButton = document.getElementById('zoomInButton');
@@ -79,9 +88,9 @@ mapCanvas.addEventListener('pointerdown', event => {
         window.clearTimeout(lastClick.timeout);
 
         if (zoom < 18) {
-          longitude = pointerLongitude;
-          latitude = pointerLatitude;
-          document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+          mapCoords.longitude = pointerLongitude;
+          mapCoords.latitude = pointerLatitude;
+          document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
 
           zoom++;
           document.getElementById('zoomSpan').textContent = zoom;
@@ -109,9 +118,9 @@ mapCanvas.addEventListener('pointerdown', event => {
         window.clearTimeout(lastClick.timeout);
 
         if (zoom > 0) {
-          longitude = pointerLongitude;
-          latitude = pointerLatitude;
-          document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+          mapCoords.longitude = pointerLongitude;
+          mapCoords.latitude = pointerLatitude;
+          document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
 
           zoom--;
           document.getElementById('zoomSpan').textContent = zoom;
@@ -125,8 +134,8 @@ mapCanvas.addEventListener('pointerdown', event => {
             return;
           }
 
-          longitude = pointerLongitude;
-          latitude = pointerLatitude;
+          mapCoords.longitude = pointerLongitude;
+          mapCoords.latitude = pointerLatitude;
           document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
           render();
         }, doubleClickThreshold + 10);
@@ -140,13 +149,17 @@ mapCanvas.addEventListener('pointerdown', event => {
 });
 
 mapCanvas.addEventListener('pointermove', event => {
+  if (!mapCoords) {
+    return;
+  }
+
   pointerX = event.clientX;
   pointerY = event.clientY;
   document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
 
   // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
-  const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
-  const centerTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+  const centerTileLongitudeNumber = (mapCoords.longitude + 180) / 360 * Math.pow(2, zoom);
+  const centerTileLatitudeNumber = (1 - Math.log(Math.tan(mapCoords.latitude * Math.PI / 180) + 1 / Math.cos(mapCoords.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
 
   const centerDifferenceX = pointerX - canvasWidth / 2;
   const centerDifferenceY = pointerY - canvasHeight / 2;
@@ -176,13 +189,13 @@ mapCanvas.addEventListener('pointermove', event => {
     let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -event.movementY / tileHeight;
 
     // Calculate the new longitude using the reserve formula plugging in the adjusted tile longitude number
-    longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+    mapCoords.longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
 
     // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
     const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
-    latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    mapCoords.latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
 
-    document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
+    document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
     render();
   }
 });
@@ -222,11 +235,11 @@ mapCanvas.addEventListener('touchmove', event => {
     let newCenterTileLatitudeNumber = centerTileLatitudeNumber + -movementY / tileHeight;
 
     // Calculate the new longitude using the reserve formula plugging in the adjusted tile longitude number
-    longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
+    mapCoords.longitude = newCenterTileLongitudeNumber / Math.pow(2, zoom) * 360 - 180;
 
     // Calculate the new latitude using the reserve formula plugging in the adjusted tile latitude number
     const n = Math.PI - 2 * Math.PI * newCenterTileLatitudeNumber / Math.pow(2, zoom);
-    latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    mapCoords.latitude = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
 
     document.getElementById('centerCoordsSpan').textContent = `${longitude.toFixed(4)} ${latitude.toFixed(4)}`;
     render();
@@ -319,6 +332,10 @@ let canvasHeight;
 
 // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 function render() {
+  if (!mapCoords) {
+    return;
+  }
+
   // Bust the context cache in case the dimensions have changed (window resize)
   if (canvasWidth !== mapCanvas.clientWidth || canvasHeight !== mapCanvas.clientHeight) {
     // Cache the context for the canvas dimensions for reuse across renders
@@ -338,8 +355,8 @@ function render() {
   const centerPointCanvasY = canvasHeight / 2;
 
   // Find the center tile longitude and latitude indices (the integral part) and the ratio of the longitude and latitude within them (the fractional part)
-  const centerTileLongitudeNumber = (longitude + 180) / 360 * Math.pow(2, zoom);
-  const centerTileLatitudeNumber = (1 - Math.log(Math.tan(latitude * Math.PI / 180) + 1 / Math.cos(latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+  const centerTileLongitudeNumber = (mapCoords.longitude + 180) / 360 * Math.pow(2, zoom);
+  const centerTileLatitudeNumber = (1 - Math.log(Math.tan(mapCoords.latitude * Math.PI / 180) + 1 / Math.cos(mapCoords.latitude * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
 
   // Find the point at which the GPS position point is within the tile it is contained within
   const centerPointTileX = (centerTileLongitudeNumber % 1) * tileWidth;
@@ -370,8 +387,8 @@ function render() {
   const verticalTileCount = Math.ceil((canvasHeight + -topRowTilesCanvasY) / tileHeight);
 
   // Remember the values for which this render happens so that what the tiles are done being resolved asynchronously they can get discarded if the map moved meanwhile
-  const renderLongitude = longitude;
-  const renderLatitude = latitude;
+  const renderLongitude = mapCoords.longitude;
+  const renderLatitude = mapCoords.latitude;
   const renderZoom = zoom;
 
   for (let horizontalTileIndex = 0; horizontalTileIndex < horizontalTileCount; horizontalTileIndex++) {
@@ -394,15 +411,19 @@ function render() {
       getTile(tileLongitudeIndex, tileLatitudeIndex, zoom)
         .then(tile => {
           // Bail if the map has moved before this tile has been resolved
-          if (renderLongitude !== longitude || renderLatitude !== latitude || renderZoom !== zoom) {
+          if (renderLongitude !== mapCoords.longitude || renderLatitude !== mapCoords.latitude || renderZoom !== zoom) {
             return;
           }
 
           // Draw the tile image
           context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
 
+          const livePoi = liveCoords ? {
+            type: 'pin', longitude: liveCoords.longitude, latitude: liveCoords.latitude
+          } : undefined;
+
           // Find POIs on this tile
-          for (const poi of pois) {
+          for (const poi of (livePoi ? [...pois, livePoi] : pois)) {
             const longitudeNumber = (poi.longitude + 180) / 360 * Math.pow(2, zoom);
             const longitudeIndex = Math.floor(longitudeNumber);
             const longitudeRatio = longitudeNumber % 1;
@@ -453,6 +474,8 @@ function render() {
   zoomInButton.disabled = zoom >= 18;
   zoomOutButton.disabled = zoom <= 0;
   document.getElementById('tilesSpan').textContent = `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
+  document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
+  document.getElementById('zoomSpan').textContent = zoom;
 }
 
 // Render the initial map view
