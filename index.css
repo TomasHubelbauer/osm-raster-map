@@ -15,12 +15,7 @@ body {
 
 .controls {
   background: white;
-  margin: 1ex;  
+  margin: 1ex;
   position: absolute;
   top: 0;
-}
-
-.controls span {
-  background: lightgray;
-  margin: 0  1ex;
 }

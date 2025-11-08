@@ -11,13 +11,27 @@
   <body>
     <canvas id="mapCanvas"></canvas>
     <div class="controls">
-      <button id="zoomInButton">+</button>
-      <button id="zoomOutButton">-</button>
-      <span id="centerCoordsSpan"></span>
-      <span id="pointerPointsSpan"></span>
-      <span id="pointerCoordsSpan"></span>
-      <span id="zoomSpan"></span>
-      <span id="tilesSpan"></span>
+      <div>
+        <button id="zoomInButton">+</button>
+        <button id="zoomOutButton">-</button>
+
+      </div>
+      <div>
+        🖥️ <span id="centerCoordsSpan"></span>
+      </div>
+      <div>
+        📍 <span id="liveCoordsSpan"></span>
+      </div>
+      <div>
+        🖱️
+        <span id="pointerCoordsSpan"></span>
+      </div>
+      <div>
+        🔍 <span id="zoomSpan"></span>/18
+      </div>
+      <div>
+        🗺️ <span id="tilesSpan"></span>
+      </div>
     </div>
   </body>
 </html>

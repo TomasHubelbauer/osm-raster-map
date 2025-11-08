@@ -419,11 +419,11 @@ requestAnimationFrame(function render() {
 
   zoomInButton.disabled = zoom >= 18;
   zoomOutButton.disabled = zoom <= 0;
-  document.getElementById('tilesSpan').textContent = `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
   document.getElementById('centerCoordsSpan').textContent = `${mapCoords.longitude.toFixed(4)} ${mapCoords.latitude.toFixed(4)}`;
-  document.getElementById('zoomSpan').textContent = zoom;
-  document.getElementById('pointerPointsSpan').textContent = `${pointerX} ${pointerY}`;
+  document.getElementById('liveCoordsSpan').textContent = `${liveCoords.longitude.toFixed(4)} ${liveCoords.latitude.toFixed(4)}`;
   document.getElementById('pointerCoordsSpan').textContent = `${pointerLongitude?.toFixed(4)} ${pointerLatitude?.toFixed(4)}`;
+  document.getElementById('zoomSpan').textContent = zoom;
+  document.getElementById('tilesSpan').textContent = `${centerTileLongitudeIndex} ${centerTileLatitudeIndex} | ${leftColumnTilesLongitudeIndex}+${horizontalTileCount} ${topRowTilesLatitudeIndex}+${verticalTileCount}`;
   requestAnimationFrame(render);
 });
 
