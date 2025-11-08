@@ -28,7 +28,7 @@ navigator.geolocation.watchPosition(
   { enableHighAccuracy: true },
 );
 
-/** @type {{ type: 'locator', longitude: number, latitude: number, accuracy: number }} */
+/** @type {{ type: 'locator' | 'pin', longitude: number, latitude: number, accuracy: number }} */
 const pois = [];
 
 const zoomInButton = document.getElementById('zoomInButton');
@@ -396,7 +396,7 @@ function render() {
           context.drawImage(tile, tileCanvasX, tileCanvasY, tileWidth, tileHeight);
 
           const livePoi = liveCoords ? {
-            type: 'pin', longitude: liveCoords.longitude, latitude: liveCoords.latitude
+            type: 'locator', longitude: liveCoords.longitude, latitude: liveCoords.latitude, accuracy: liveCoords.accuracy,
           } : undefined;
 
           // Find POIs on this tile
@@ -415,7 +415,7 @@ function render() {
                 case 'locator': {
                   context.fillStyle = 'rgba(0, 0, 255, .2)';
                   context.beginPath();
-                  const accuracyRadius = (100 / accuracy /* % */) * zoom / 2;
+                  const accuracyRadius = (100 / poi.accuracy /* % */) * zoom / 2;
                   context.arc(tileCanvasX + longitudeRatio * tileWidth, tileCanvasY + latitudeRatio * tileHeight, accuracyRadius, 0, Math.PI * 2);
                   context.fill();
                   break;
